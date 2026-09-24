@@ -27,7 +27,12 @@ Google Agents for Impact (jan/2027) e HSIL (mar/2027).
 - A medição fica dentro do app. Atendimento 1 sem ajuda → correção → atendimento 2
   sem ajuda. A mesma métrica nos dois: sinais descobertos / sinais do caso, e se o
   encaminhamento está correto.
-- Contrabalanceamento: o código sorteia um par de casos distintos e a ordem entre eles.
+- Contrabalanceamento: os dois atendimentos do estudo usam só os 3 casos com sinal
+  escondido (`davi`, `joaquim`, `rafa`), porque um caso sem sinal não mede nada. A ordem
+  vem de um rodízio entre as 6 permutações (a sessão n usa a permutação n mod 6), que
+  equilibra melhor que sorteio com ~10 pessoas.
+- Limite conhecido: no estudo a resposta certa é sempre `C`, então o acerto de
+  encaminhamento é métrica secundária. A principal é a de sinais descobertos.
 - No fim, uma pergunta de uma linha, 1 a 5: "Você se sente mais preparado para
   reconhecer um sinal de alarme?"
 
@@ -61,11 +66,13 @@ Numa visita domiciliar é comum um familiar relatar os sintomas.
 
 | id | Quem fala | Queixa principal (no prompt) | Escondido (só pela ficha) | Resposta |
 |---|---|---|---|---|
-| `antonio` | Seu Antônio, 34 | febre há 3 dias, dor no corpo e atrás dos olhos | nada | A |
 | `davi` | Pai do Davi, 1 ano e 8 meses | febre há 3 dias | vômitos persistentes (4 hoje); sonolência/"molinho" | C |
-| `juliana` | Marido da Juliana, gestante de 28 semanas | ela com febre há 2 dias, dor no corpo | nada além da gestação (grupo de risco, citado se perguntarem) | B |
-| `joaquim` | Seu Joaquim, 70, hipertenso | teve febre alta, "agora tá melhor" | febre cessou ontem (fase crítica); tontura ao levantar | C |
+| `joaquim` | Seu Joaquim, 70, hipertenso | teve febre alta, "agora tá melhor" | tontura ao levantar (quase caiu); falta de ar ao deitar. Contexto sem pontuar: a febre cessou ontem (fase crítica) | C |
 | `rafa` | Rafa, 22 | febre há 4 dias | sangramento de gengiva ("sempre sangra um pouco"); dor abdominal intensa e contínua | C |
+
+Os casos `antonio` (sem alarme, resposta A) e `juliana` (gestante, resposta B) ficam
+fora desta versão e voltam num modo de treino livre. As opções A e B continuam na
+tela, porque quem deixa passar um sinal tende a escolhê-las.
 
 Os sinais seguem a lista do Ministério da Saúde (Dengue: diagnóstico e manejo clínico).
 Cada caso tem os campos `revisado_por` e `revisado_em`. Enquanto estiverem vazios, a
@@ -84,15 +91,16 @@ Assunto sem entrada no caso devolve a resposta normal do caso ("não, nada disso
 
 - **Next.js (App Router, TypeScript) na Vercel**, com Postgres no **Supabase**.
 - **Voice Agent API da AssemblyAI** do começo ao fim: STT Universal-3.5 Pro
-  (`language_codes: ["pt"]`), detecção de turno, interrupção, LLM Claude pelo LLM
-  Gateway da AssemblyAI e voz `rafael`. Configuração inline por `session.update`
+  (`language_codes: ["pt"]`), detecção de turno, interrupção, **modelo conversacional
+  gerenciado da AssemblyAI** e voz `rafael`. O LLM Gateway só faz streaming com modelos
+  OpenAI, e um Claude sem streaming somaria latência a cada fala. Configuração inline por `session.update`
   antes de `session.ready`, com *key terms* do vocabulário de dengue para o STT.
 - O navegador conecta com um **token temporário** emitido por `POST /api/token`.
   A chave da AssemblyAI fica só no servidor.
 
 ```
 navegador ──POST /api/token──► servidor ──► AssemblyAI (token temporário)
-navegador ══WebSocket══► Voice Agent API (STT pt · turno · Claude · voz rafael)
+navegador ══WebSocket══► Voice Agent API (STT pt · turno · modelo gerenciado · voz rafael)
 Voice Agent ──tool.call consultar_ficha{assunto}──► navegador
 navegador ──POST /api/ficha {sessao, atendimento, assunto, ultima_fala}──► servidor
 servidor ──grava evento, devolve fato──► navegador ──tool.result──► Voice Agent
@@ -168,5 +176,5 @@ assunto; conteúdo clínico revisado por estudantes, não por protocolo oficial 
 
 ## 10. Fora do escopo
 
-Dois níveis (classificação A/B/C/D do Ministério), casos gerados por IA, variação sorteada
+Os casos `antonio` e `juliana` (treino livre), dois níveis (classificação A/B/C/D do Ministério), casos gerados por IA, variação sorteada
 de persona, modo texto, login, voz brasileira de outro provedor e qualquer coisa de AWS.
