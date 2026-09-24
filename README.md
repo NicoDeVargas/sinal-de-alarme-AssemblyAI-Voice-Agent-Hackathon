@@ -12,7 +12,8 @@ symptoms that matter. The warning signs — persistent vomiting, dizziness on st
 gum bleeding, abdominal pain, breathing trouble while lying down — surface only if the
 visitor asks the right question. Missing one can mean a late referral.
 
-There is no safe way to practice this. Sinal de Alarme lets someone run a simulated
+Practicing this today usually means role-play with a colleague or learning on real
+patients. Sinal de Alarme lets someone run a simulated
 home visit by voice, against a virtual patient who hides symptoms the way real patients
 do, then shows exactly which questions would have uncovered them.
 
@@ -74,8 +75,9 @@ browser ──POST /api/decisao {session, visit, referral}──► server ─�
   to close the conversation cleanly, both from a normal exit and from the
   `pagehide` event.
 - The browser never sees the AssemblyAI API key. It authenticates with a single-use
-  temporary token minted server-side by `POST /api/token`, capped per IP and per
-  session.
+  temporary token minted server-side by `POST /api/token`. Session creation is
+  capped at 30 per hour per IP (`app/api/sessoes/route.ts`), and token minting is
+  capped at 8 per session (`app/api/token/route.ts`).
 
 ## The study and results
 
@@ -110,8 +112,9 @@ npm run dev
   not count it as discovered, since only tool calls are logged as evidence.
 - If the WebSocket drops mid-visit, the person resumes with a new voice session on
   the same case; events already logged still count.
-- Clinical content for each case was reviewed by students, not validated against an
-  official protocol.
+- Case content is an AI-assisted draft based on the Brazilian Ministry of Health
+  warning-sign list, pending review by health students; the app labels any case
+  without a recorded reviewer as a draft ("Rascunho, sem revisão clínica").
 - In the study, the correct referral is always urgent care, so referral accuracy is
   a secondary metric; signs discovered is the primary one.
 
