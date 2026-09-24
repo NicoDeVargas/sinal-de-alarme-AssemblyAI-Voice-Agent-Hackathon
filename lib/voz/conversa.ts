@@ -36,30 +36,39 @@ export async function iniciarConversa({ sessaoId, atendimento, aoFalar, aoEstado
     aoEstado("erro", "Sem acesso ao microfone. Libere o microfone no navegador e tente de novo.");
     throw new Error("microfone");
   }
-  const { token } = await json("/api/token", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ sessaoId }),
-  });
-
-  const url = new URL("wss://agents.assemblyai.com/v1/ws");
-  url.searchParams.set("token", token);
-  const socket = new WebSocket(url);
+  let socket: WebSocket;
+  try {
+    const { token } = await json("/api/token", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ sessaoId }),
+    });
+    const url = new URL("wss://agents.assemblyai.com/v1/ws");
+    url.searchParams.set("token", token);
+    socket = new WebSocket(url);
+  } catch (e) {
+    audio.fechar();
+    aoEstado("erro", (e as Error).message);
+    throw e;
+  }
   ws = socket;
   const fila = criarFila((m) => socket.send(JSON.stringify(m)));
 
   function fechar() {
     if (encerrado) return;
     encerrado = true;
+    window.removeEventListener("pagehide", aoSair);
     audio.fechar();
     aoEstado("encerrado");
   }
 
   socket.onopen = () => socket.send(JSON.stringify({ type: "session.update", session: config }));
   socket.onclose = () => {
-    if (!encerrado) aoEstado("erro", "A conexão caiu.");
+    if (encerrado) return;
     encerrado = true;
+    window.removeEventListener("pagehide", aoSair);
     audio.fechar();
+    aoEstado("erro", "A conexão caiu.");
   };
   socket.onmessage = async (ev) => {
     const msg = JSON.parse(ev.data);

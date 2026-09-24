@@ -4,14 +4,17 @@ import type { Correcao } from "@/lib/casos/tipos";
 
 export function Resultado({ sessaoId, c1, c2, preparoInicial }: { sessaoId: string; c1: Correcao; c2: Correcao; preparoInicial: number | null }) {
   const [preparo, setPreparo] = useState(preparoInicial);
+  const [erro, setErro] = useState("");
 
   async function responder(n: number) {
+    setErro("");
     const r = await fetch(`/api/sessoes/${sessaoId}/preparo`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ preparo: n }),
     });
     if (r.ok) setPreparo(n);
+    else setErro("Não foi possível salvar. Tente de novo.");
   }
 
   return (
@@ -27,6 +30,7 @@ export function Resultado({ sessaoId, c1, c2, preparoInicial }: { sessaoId: stri
               <button key={n} onClick={() => responder(n)} className="h-12 w-12 rounded border font-semibold hover:bg-gray-50">{n}</button>
             ))}
           </div>
+          {erro && <p className="text-red-700">{erro}</p>}
         </div>
       ) : (
         <p>Obrigado! <a href="/estudo" className="underline">Ver o painel do estudo</a></p>

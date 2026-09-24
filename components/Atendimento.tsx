@@ -8,6 +8,7 @@ export function Atendimento({ sessaoId, atendimento, caso, aoDecidir }: { sessao
   const [estado, setEstado] = useState<EstadoConversa | "parado">("parado");
   const [detalhe, setDetalhe] = useState("");
   const [decidindo, setDecidindo] = useState(false);
+  const [erroDecisao, setErroDecisao] = useState("");
   const conversa = useRef<{ encerrar(): void } | null>(null);
 
   async function comecar() {
@@ -34,12 +35,14 @@ export function Atendimento({ sessaoId, atendimento, caso, aoDecidir }: { sessao
   }
 
   async function escolher(encaminhamento: Encaminhamento) {
+    setErroDecisao("");
     const r = await fetch("/api/decisao", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ sessaoId, atendimento, encaminhamento }),
     });
     if (r.ok) aoDecidir(await r.json());
+    else setErroDecisao((await r.json().catch(() => ({}))).erro ?? "Não foi possível registrar a decisão. Tente de novo.");
   }
 
   return (
@@ -65,6 +68,12 @@ export function Atendimento({ sessaoId, atendimento, caso, aoDecidir }: { sessao
       {estado === "pronto" && !decidindo && (
         <button onClick={decidir} className="w-full rounded border-2 border-red-700 p-3 font-semibold text-red-700">Decidir o encaminhamento</button>
       )}
+      {estado === "encerrado" && !decidindo && (
+        <div className="space-y-2">
+          <button onClick={comecar} className="w-full rounded bg-red-700 p-3 font-semibold text-white">Retomar atendimento</button>
+          <button onClick={decidir} className="w-full rounded border-2 border-red-700 p-3 font-semibold text-red-700">Decidir o encaminhamento</button>
+        </div>
+      )}
       {decidindo && (
         <div className="space-y-2">
           <p className="font-medium">Qual o encaminhamento?</p>
@@ -73,6 +82,7 @@ export function Atendimento({ sessaoId, atendimento, caso, aoDecidir }: { sessao
               <b>{e}.</b> {ENCAMINHAMENTOS[e]}
             </button>
           ))}
+          {erroDecisao && <p className="text-red-700">{erroDecisao}</p>}
         </div>
       )}
     </section>

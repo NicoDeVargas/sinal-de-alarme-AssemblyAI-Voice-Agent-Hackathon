@@ -19,8 +19,11 @@ export async function POST(request: Request) {
   if (decidido(s, atendimento) || (atendimento === 2 && !s.encaminhamento_1)) {
     return Response.json({ erro: "decisão fora de ordem" }, { status: 409 });
   }
-  if (atendimento === 1) await sql`update sessoes set encaminhamento_1 = ${encaminhamento} where id = ${s.id} and encaminhamento_1 is null`;
-  else await sql`update sessoes set encaminhamento_2 = ${encaminhamento} where id = ${s.id} and encaminhamento_2 is null`;
+  const linhas =
+    atendimento === 1
+      ? await sql`update sessoes set encaminhamento_1 = ${encaminhamento} where id = ${s.id} and encaminhamento_1 is null returning id`
+      : await sql`update sessoes set encaminhamento_2 = ${encaminhamento} where id = ${s.id} and encaminhamento_2 is null returning id`;
+  if (linhas.length === 0) return Response.json({ erro: "atendimento já decidido" }, { status: 409 });
   const caso = CASOS_PRIVADOS[casoDoAtendimento(s, atendimento)];
   return Response.json(corrigir(caso, await carregarEventos(s.id, atendimento), encaminhamento));
 }
