@@ -178,3 +178,84 @@ assunto; conteúdo clínico revisado por estudantes, não por protocolo oficial 
 
 Os casos `antonio` e `juliana` (treino livre), dois níveis (classificação A/B/C/D do Ministério), casos gerados por IA, variação sorteada
 de persona, modo texto, login, voz brasileira de outro provedor e qualquer coisa de AWS.
+
+---
+
+# Versão 2 (25/09/2026) — escopo ampliado depois do primeiro teste de voz
+
+O primeiro teste real mostrou voz com sotaque brasileiro e o paciente segurando os
+fatos, mas correção rasa ("achou 1 de 2 + clicou C"). Esta seção substitui as seções
+2, 4 e a correção da seção 5 onde houver conflito.
+
+## V2.1 Casos: sempre algo a descobrir, respostas variadas
+
+A métrica passa a ser **achados críticos**: sinal de alarme **ou** condição de risco
+escondida. Cinco casos, todos no estudo:
+
+| id | Quem fala | Queixa (no prompt) | Achados escondidos | Resposta | Pergunta do paciente |
+|---|---|---|---|---|---|
+| `davi` | Marcos, pai do Davi (1a8m) | febre há 3 dias | vômitos persistentes; letargia | C | "Posso dar AAS pra baixar a febre dele?" |
+| `joaquim` | Seu Joaquim, 70 | febre alta, "já tô melhor" | tontura ao levantar; falta de ar | C | "Preciso ir mesmo? Já tô melhor, a febre passou." |
+| `rafa` | Rafa, 22 | febre há 4 dias, corpo doendo | sangramento de gengiva; dor abdominal contínua | C | "Posso tomar mais daquele anti-inflamatório? Ajudou na dor." |
+| `juliana` | Pedro, marido da Juliana | ela com febre há 2 dias, dor no corpo | gestação (7 meses) | B | "Ela pode tomar aquele remédio de gripe que tem aqui?" |
+| `celia` | Roberto, filho da Dona Célia (64) | ela com febre há 3 dias, dor nas juntas, cansada | diabetes com insulina | B | "Precisa mesmo levar ela no posto? Ela detesta ir lá." |
+
+Rodízio: par ordenado menos usado entre as 20 permutações (5×4), mesma regra de
+sessões consideradas da V1.
+
+## V2.2 Correção em cinco dimensões (nota 0–100)
+
+| Dimensão | Pts | Como |
+|---|---|---|
+| Achados críticos | 40 | determinístico: eventos da ficha com `achado` |
+| Encaminhamento | 20 | determinístico |
+| Anamnese essencial | 15 | determinístico: perguntou evolução da febre (`evolucao_da_febre`), hidratação/diurese (`alimentacao_hidratacao` ou `urina`), doenças e remédios (`doencas_e_remedios`) |
+| Orientações | 15 | LLM + verificação: hidratação oral; não usar AAS/anti-inflamatório; sinais para voltar/procurar ajuda; para onde ir e quando |
+| Resposta à pergunta do paciente | 10 | LLM + verificação, contra a resposta esperada (só no servidor) |
+
+Mais um retorno de **comunicação** sem nota (pergunta aberta vs. induzida, jargão),
+cada ponto com citação.
+
+**Regra de verificação:** todo item que o LLM marca como cumprido vem com a citação
+exata de uma fala do profissional; o código normaliza (minúsculas, sem acento, sem
+pontuação, espaços colapsados) e só aceita se a citação for substring da fala
+normalizada do profissional. Sem citação válida, não conta.
+
+Sem avaliação do LLM (falha ou indisponível), orientações e pergunta aparecem como
+"não avaliado" e a nota usa só as dimensões determinísticas, reescaladas para 0–100
+(`notaDeterministica`); o painel mostra as duas quando existirem.
+
+LLM: endpoint compatível com OpenAI configurado por `LLM_BASE_URL`, `LLM_MODELO`,
+`LLM_API_KEY` (padrão: LLM Gateway da AssemblyAI com a mesma chave), saída
+`response_format: json_schema`.
+
+## V2.3 Paciente pergunta de volta
+
+A pergunta do paciente está no prompt público (não é segredo); a resposta esperada
+fica no servidor. O paciente faz a pergunta uma vez, depois de ao menos três trocas
+ou quando o profissional começar a orientar.
+
+## V2.4 Preceptor por voz (entre atendimento 1 e 2)
+
+Depois da correção 1, uma conversa opcional de até 3 minutos com um preceptor
+(Voice Agent API, voz `rafael`, sem tools), socrático: conhece a correção (que já não
+é segredo), pergunta o que a pessoa faria diferente, reforça um ou dois pontos,
+nunca dá a lista inteira. Botão "Pular". O cliente encerra aos 180 s. Registra
+`preceptor_segundos` na sessão.
+
+## V2.5 Transcrição e dados
+
+- Transcrição em tempo real na tela (deltas) e, na decisão, o cliente envia as falas
+  finais (`transcricao: {quem, texto}[]`) junto com o encaminhamento. O servidor
+  guarda em `falas` e a avaliação do LLM em `avaliacoes` (jsonb).
+- Token por sessão: limite 12 (dois atendimentos, preceptor, reconexões).
+
+## V2.6 Visual
+
+Refeito do zero, mobile-first, depois da funcionalidade.
+
+## V2.7 Painel
+
+Nota composta média no atendimento 1 vs. 2, achados críticos 1 vs. 2, acerto de
+encaminhamento 1 vs. 2, quantos melhoraram a nota, quantos fizeram o preceptor, por
+papel, média do "preparado".
