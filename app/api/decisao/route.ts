@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { sql } from "@/lib/db";
 import { CASOS_PRIVADOS } from "@/lib/casos/privado";
+import { CASOS_PUBLICOS } from "@/lib/casos/publico";
 import { corrigir } from "@/lib/estudo/corrigir";
 import { carregarEventos, carregarSessao, casoDoAtendimento, decidido } from "@/lib/estudo/carregar";
 
@@ -24,6 +25,6 @@ export async function POST(request: Request) {
       ? await sql`update sessoes set encaminhamento_1 = ${encaminhamento} where id = ${s.id} and encaminhamento_1 is null returning id`
       : await sql`update sessoes set encaminhamento_2 = ${encaminhamento} where id = ${s.id} and encaminhamento_2 is null returning id`;
   if (linhas.length === 0) return Response.json({ erro: "atendimento já decidido" }, { status: 409 });
-  const caso = CASOS_PRIVADOS[casoDoAtendimento(s, atendimento)];
-  return Response.json(corrigir(caso, await carregarEventos(s.id, atendimento), encaminhamento));
+  const id = casoDoAtendimento(s, atendimento);
+  return Response.json(corrigir(CASOS_PRIVADOS[id], CASOS_PUBLICOS[id], await carregarEventos(s.id, atendimento), encaminhamento, null));
 }

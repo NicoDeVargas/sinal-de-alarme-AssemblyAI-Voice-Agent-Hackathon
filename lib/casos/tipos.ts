@@ -90,19 +90,41 @@ export const ORIENTACOES: { id: string; nome: string; criterio: string }[] = [
   { id: "para_onde_e_quando", nome: "Para onde ir e quando", criterio: "disse para onde a pessoa deve ir (UBS, UPA, pronto-socorro) e quando" },
 ];
 
-export interface SinalCorrigido {
+export interface Fala {
+  quem: "profissional" | "paciente";
+  texto: string;
+}
+
+export interface AvaliacaoBruta {
+  orientacoes: { id: string; cumprida: boolean; citacao: string }[];
+  respostaPaciente: { respondeu: boolean; correta: boolean; citacao: string; comentario: string };
+  comunicacao: { tipo: "positivo" | "melhorar"; texto: string; citacao: string }[];
+}
+
+export interface Avaliacao {
+  orientacoes: { id: string; nome: string; cumprida: boolean; citacao: string | null }[];
+  respostaPaciente: { correta: boolean; citacao: string | null; comentario: string };
+  comunicacao: { tipo: "positivo" | "melhorar"; texto: string; citacao: string }[];
+}
+
+export interface ItemCorrigido {
   id: string;
   nome: string;
-  descoberto: boolean;
+  feito: boolean;
   evidencia: string;
 }
 
 export interface Correcao {
-  sinais: SinalCorrigido[];
-  descobertos: number;
-  total: number;
+  achados: ItemCorrigido[];
+  anamnese: ItemCorrigido[];
+  orientacoes: { id: string; nome: string; feito: boolean; evidencia: string | null }[] | null;
+  respostaPaciente: { pergunta: string; correta: boolean; citacao: string | null; comentario: string; esperada: string } | null;
+  comunicacao: { tipo: "positivo" | "melhorar"; texto: string; citacao: string }[];
   escolhido: Encaminhamento;
   correto: Encaminhamento;
   acertou: boolean;
   motivo: string;
+  partes: { achados: number; encaminhamento: number; anamnese: number; orientacoes: number | null; pergunta: number | null };
+  nota: number;
+  notaDeterministica: number;
 }

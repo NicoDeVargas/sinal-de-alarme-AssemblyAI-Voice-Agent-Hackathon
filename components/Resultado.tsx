@@ -20,8 +20,8 @@ export function Resultado({ sessaoId, c1, c2, preparoInicial }: { sessaoId: stri
   return (
     <section className="space-y-4">
       <h2 className="text-2xl font-bold">Seu resultado</h2>
-      <p>Atendimento 1: {c1.descobertos} de {c1.total} sinais · encaminhamento {c1.acertou ? "certo" : "errado"}</p>
-      <p>Atendimento 2: {c2.descobertos} de {c2.total} sinais · encaminhamento {c2.acertou ? "certo" : "errado"}</p>
+      <p>Atendimento 1: nota {c1.nota} · {c1.achados.filter((a) => a.feito).length} de {c1.achados.length} achados · encaminhamento {c1.acertou ? "certo" : "errado"}</p>
+      <p>Atendimento 2: nota {c2.nota} · {c2.achados.filter((a) => a.feito).length} de {c2.achados.length} achados · encaminhamento {c2.acertou ? "certo" : "errado"}</p>
       {preparo === null ? (
         <div className="space-y-2">
           <p className="font-medium">Você se sente mais preparado(a) para reconhecer um sinal de alarme? (1 = nada, 5 = muito)</p>

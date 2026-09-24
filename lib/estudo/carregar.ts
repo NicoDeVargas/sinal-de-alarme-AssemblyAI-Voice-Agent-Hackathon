@@ -1,6 +1,7 @@
 import "server-only";
 import { sql } from "@/lib/db";
 import { CASOS_PRIVADOS } from "@/lib/casos/privado";
+import { CASOS_PUBLICOS } from "@/lib/casos/publico";
 import { corrigir } from "@/lib/estudo/corrigir";
 import type { Assunto, CasoId, Correcao, Encaminhamento, Evento, Papel } from "@/lib/casos/tipos";
 
@@ -28,8 +29,8 @@ export async function carregarEventos(sessaoId: string, atendimento: 1 | 2): Pro
 }
 
 export async function correcoesDa(s: LinhaSessao): Promise<[Correcao | null, Correcao | null]> {
-  const c1 = s.encaminhamento_1 ? corrigir(CASOS_PRIVADOS[s.caso_1], await carregarEventos(s.id, 1), s.encaminhamento_1) : null;
-  const c2 = s.encaminhamento_2 ? corrigir(CASOS_PRIVADOS[s.caso_2], await carregarEventos(s.id, 2), s.encaminhamento_2) : null;
+  const c1 = s.encaminhamento_1 ? corrigir(CASOS_PRIVADOS[s.caso_1], CASOS_PUBLICOS[s.caso_1], await carregarEventos(s.id, 1), s.encaminhamento_1, null) : null;
+  const c2 = s.encaminhamento_2 ? corrigir(CASOS_PRIVADOS[s.caso_2], CASOS_PUBLICOS[s.caso_2], await carregarEventos(s.id, 2), s.encaminhamento_2, null) : null;
   return [c1, c2];
 }
 
