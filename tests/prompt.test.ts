@@ -27,8 +27,8 @@ describe("montarSessao", () => {
     expect(sessao.output.voice).toBe("rafael");
     expect(sessao.input.language_codes).toEqual(["pt"]);
     expect(sessao.tools).toHaveLength(1);
-    expect(sessao.tools[0].name).toBe("consultar_ficha");
-    expect(sessao.tools[0].parameters.properties.assunto.enum).toEqual([...ASSUNTOS]);
+    expect(sessao.tools![0].name).toBe("consultar_ficha");
+    expect(sessao.tools![0].parameters.properties.assunto.enum).toEqual([...ASSUNTOS]);
     expect(sessao.greeting).toBe(CASOS_PUBLICOS.rafa.saudacao);
   });
 

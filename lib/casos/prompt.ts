@@ -3,7 +3,7 @@ import { ASSUNTOS, type CasoPublico } from "./tipos";
 export interface SessaoVoz {
   system_prompt: string;
   greeting: string;
-  tools: {
+  tools?: {
     type: "function";
     name: string;
     description: string;
@@ -19,7 +19,7 @@ export interface SessaoVoz {
   output: { voice: string };
 }
 
-const KEYTERMS = ["dengue", "febre", "UBS", "posto", "soro", "hidratação", "dipirona", "paracetamol", "xixi", "fralda", "pressão", "plaqueta"];
+export const KEYTERMS = ["dengue", "febre", "UBS", "posto", "soro", "hidratação", "dipirona", "paracetamol", "xixi", "fralda", "pressão", "plaqueta"];
 
 export function montarSessao(caso: CasoPublico): SessaoVoz {
   const system_prompt = [

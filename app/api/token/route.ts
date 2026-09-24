@@ -9,7 +9,7 @@ export async function POST(request: Request) {
   const s = corpo.success ? await carregarSessao(corpo.data.sessaoId) : null;
   if (!s) return Response.json({ erro: "sessão não encontrada" }, { status: 404 });
   if (s.encaminhamento_2) return Response.json({ erro: "sessão encerrada" }, { status: 409 });
-  if (s.tokens >= 8) return Response.json({ erro: "limite de conexões desta sessão" }, { status: 429 });
+  if (s.tokens >= 12) return Response.json({ erro: "limite de conexões desta sessão" }, { status: 429 });
   await sql`update sessoes set tokens = tokens + 1 where id = ${s.id}`;
   const url = new URL("https://agents.assemblyai.com/v1/token");
   url.searchParams.set("expires_in_seconds", "120");

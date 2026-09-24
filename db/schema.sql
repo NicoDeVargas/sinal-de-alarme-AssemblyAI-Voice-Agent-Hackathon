@@ -26,3 +26,24 @@ create table if not exists eventos (
 
 create index if not exists eventos_sessao on eventos (sessao_id, atendimento);
 create index if not exists sessoes_ip on sessoes (ip_hash, criada_em);
+
+create table if not exists falas (
+  id bigserial primary key,
+  sessao_id uuid not null references sessoes(id) on delete cascade,
+  atendimento int not null check (atendimento in (1, 2)),
+  ordem int not null,
+  quem text not null check (quem in ('profissional', 'paciente')),
+  texto text not null
+);
+
+create index if not exists falas_sessao on falas (sessao_id, atendimento, ordem);
+
+create table if not exists avaliacoes (
+  sessao_id uuid not null references sessoes(id) on delete cascade,
+  atendimento int not null check (atendimento in (1, 2)),
+  resultado jsonb,
+  criada_em timestamptz not null default now(),
+  primary key (sessao_id, atendimento)
+);
+
+alter table sessoes add column if not exists preceptor_segundos int;
