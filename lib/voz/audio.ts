@@ -1,3 +1,5 @@
+const ATRASO_MS = 150;
+
 function paraBase64(buffer: ArrayBuffer) {
   const bytes = new Uint8Array(buffer);
   let binario = "";
@@ -5,8 +7,15 @@ function paraBase64(buffer: ArrayBuffer) {
   return btoa(binario);
 }
 
+function deBase64(base64: string) {
+  const bruto = atob(base64);
+  const bytes = new Uint8Array(bruto.length);
+  for (let i = 0; i < bruto.length; i++) bytes[i] = bruto.charCodeAt(i);
+  return bytes.buffer;
+}
+
 export async function abrirAudio(ctx: AudioContext, aoCapturar: (base64: string) => void) {
-  await ctx.audioWorklet.addModule("/pcm-processor.js");
+  await Promise.all([ctx.audioWorklet.addModule("/pcm-processor.js"), ctx.audioWorklet.addModule("/pcm-player.js")]);
   const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: false } });
   const fonte = ctx.createMediaStreamSource(stream);
   const worklet = new AudioWorkletNode(ctx, "pcm-processor", { processorOptions: { inputSampleRate: ctx.sampleRate } });
@@ -15,32 +24,29 @@ export async function abrirAudio(ctx: AudioContext, aoCapturar: (base64: string)
   mudo.gain.value = 0;
   fonte.connect(worklet).connect(mudo).connect(ctx.destination);
 
-  let fim = ctx.currentTime;
-  const tocando = new Set<AudioBufferSourceNode>();
+  const tocador = new AudioWorkletNode(ctx, "pcm-player", {
+    numberOfInputs: 0,
+    outputChannelCount: [1],
+    processorOptions: { atraso: ATRASO_MS / 1000 },
+  });
+  tocador.connect(ctx.destination);
+
+  let fim = 0;
+  function proximoInicio() {
+    const agora = performance.now();
+    return fim > agora ? fim : agora + ATRASO_MS;
+  }
 
   return {
+    proximoInicio,
     tocar(base64: string) {
-      const bruto = atob(base64);
-      const amostras = new Float32Array(bruto.length / 2);
-      for (let i = 0; i < amostras.length; i++) {
-        const v = bruto.charCodeAt(i * 2) | (bruto.charCodeAt(i * 2 + 1) << 8);
-        amostras[i] = (v >= 0x8000 ? v - 0x10000 : v) / 32768;
-      }
-      const buffer = ctx.createBuffer(1, amostras.length, 24000);
-      buffer.getChannelData(0).set(amostras);
-      const src = ctx.createBufferSource();
-      src.buffer = buffer;
-      src.connect(ctx.destination);
-      fim = Math.max(fim, ctx.currentTime);
-      src.start(fim);
-      fim += buffer.duration;
-      tocando.add(src);
-      src.onended = () => tocando.delete(src);
+      const buffer = deBase64(base64);
+      fim = proximoInicio() + buffer.byteLength / 48;
+      tocador.port.postMessage(buffer, [buffer]);
     },
     silenciar() {
-      for (const src of tocando) src.stop();
-      tocando.clear();
-      fim = ctx.currentTime;
+      fim = 0;
+      tocador.port.postMessage("parar");
     },
     fechar() {
       stream.getTracks().forEach((t) => t.stop());

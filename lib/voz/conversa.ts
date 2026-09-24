@@ -3,8 +3,16 @@ import { criarFila } from "./fila";
 
 export type EstadoConversa = "conectando" | "pronto" | "encerrado" | "erro";
 export interface Linha {
+  id: string;
   quem: "voce" | "paciente";
   texto: string;
+  parcial: boolean;
+}
+
+export function juntar(texto: string, palavra: string) {
+  if (!texto || !palavra) return texto + palavra;
+  if (/^\s/.test(palavra) || /\s$/.test(texto) || /^[.,!?;:…)]/.test(palavra)) return texto + palavra;
+  return `${texto} ${palavra}`;
 }
 
 interface Opcoes {
@@ -34,6 +42,7 @@ export async function iniciarConversa({ sessaoId, atendimento, aoFalar, aoEstado
   let pronto = false;
   let encerrado = false;
   let ultimaFala = "";
+  let legenda: { id: string; inicio: number | null; texto: string; timers: number[] } | null = null;
   let ws: WebSocket | null = null;
   let audio: Awaited<ReturnType<typeof abrirAudio>>;
   try {
@@ -63,9 +72,15 @@ export async function iniciarConversa({ sessaoId, atendimento, aoFalar, aoEstado
   ws = socket;
   const fila = criarFila((m) => socket.send(JSON.stringify(m)));
 
+  function pararLegenda() {
+    legenda?.timers.forEach((t) => clearTimeout(t));
+    legenda = null;
+  }
+
   function fechar(estado: EstadoConversa, detalhe?: string, avisar = false) {
     if (encerrado) return;
     encerrado = true;
+    pararLegenda();
     window.removeEventListener("pagehide", aoSair);
     if (avisar && socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: "session.end" }));
     socket.close();
@@ -81,13 +96,34 @@ export async function iniciarConversa({ sessaoId, atendimento, aoFalar, aoEstado
     if (msg.type === "session.ready") {
       pronto = true;
       aoEstado("pronto");
-    } else if (msg.type === "reply.audio") audio.tocar(msg.data);
-    else if (msg.type === "reply.done" && msg.status === "interrupted") audio.silenciar();
+    } else if (msg.type === "reply.started") {
+      pararLegenda();
+      legenda = { id: msg.reply_id, inicio: null, texto: "", timers: [] };
+    } else if (msg.type === "reply.audio") {
+      if (legenda) legenda.inicio ??= audio.proximoInicio();
+      audio.tocar(msg.data);
+    } else if (msg.type === "reply.done" && msg.status === "interrupted") {
+      audio.silenciar();
+      pararLegenda();
+    } else if (msg.type === "transcript.user.delta") aoFalar({ id: `voce:${msg.item_id}`, quem: "voce", texto: msg.text, parcial: true });
     else if (msg.type === "transcript.user") {
       ultimaFala = msg.text;
-      aoFalar({ quem: "voce", texto: msg.text });
-    } else if (msg.type === "transcript.agent") aoFalar({ quem: "paciente", texto: msg.text });
-    else if (msg.type === "tool.call" && msg.name === "consultar_ficha") {
+      aoFalar({ id: `voce:${msg.item_id}`, quem: "voce", texto: msg.text, parcial: false });
+    } else if (msg.type === "transcript.agent.delta") {
+      const r = legenda;
+      if (!r || r.id !== msg.reply_id) return;
+      r.inicio ??= audio.proximoInicio();
+      const espera = Math.max(0, r.inicio + (msg.start_ms ?? 0) - performance.now());
+      r.timers.push(
+        window.setTimeout(() => {
+          r.texto = juntar(r.texto, msg.delta);
+          aoFalar({ id: `paciente:${r.id}`, quem: "paciente", texto: r.texto, parcial: true });
+        }, espera),
+      );
+    } else if (msg.type === "transcript.agent") {
+      if (legenda?.id === msg.reply_id) pararLegenda();
+      aoFalar({ id: `paciente:${msg.reply_id}`, quem: "paciente", texto: msg.text, parcial: false });
+    } else if (msg.type === "tool.call" && msg.name === "consultar_ficha") {
       fila.chamada(msg.call_id);
       try {
         const { resposta } = await json("/api/ficha", {

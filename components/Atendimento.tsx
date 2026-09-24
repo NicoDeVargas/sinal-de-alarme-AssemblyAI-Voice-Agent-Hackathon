@@ -17,7 +17,7 @@ export function Atendimento({ sessaoId, atendimento, caso, aoDecidir }: { sessao
       conversa.current = await iniciarConversa({
         sessaoId,
         atendimento,
-        aoFalar: (l) => setLinhas((x) => [...x, l]),
+        aoFalar: (l) => setLinhas((x) => (x.some((y) => y.id === l.id) ? x.map((y) => (y.id === l.id ? l : y)) : [...x, l])),
         aoEstado: (e, d) => {
           setEstado(e);
           if (d) setDetalhe(d);
@@ -63,8 +63,8 @@ export function Atendimento({ sessaoId, atendimento, caso, aoDecidir }: { sessao
       {estado === "conectando" && <p>Conectando…</p>}
       {detalhe && <p className="text-red-700">{detalhe}</p>}
       <div className="space-y-2">
-        {linhas.map((l, i) => (
-          <p key={i} className={l.quem === "voce" ? "text-right" : ""}>
+        {linhas.filter((l) => l.texto).map((l) => (
+          <p key={l.id} className={l.quem === "voce" ? "text-right" : ""}>
             <span className={`inline-block rounded px-3 py-2 ${l.quem === "voce" ? "bg-gray-100" : "bg-red-50"}`}>{l.texto}</span>
           </p>
         ))}
