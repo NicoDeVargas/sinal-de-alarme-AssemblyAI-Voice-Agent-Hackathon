@@ -13,7 +13,7 @@ const pct = (x: number) => `${Math.round(x * 100)}%`;
 export default async function Estudo() {
   const linhas = await sql<LinhaSessao[]>`
     select id, papel, caso_1, caso_2, encaminhamento_1, encaminhamento_2, preparo, tokens
-    from sessoes where encaminhamento_2 is not null and apelido <> 'teste' order by criada_em`;
+    from sessoes where encaminhamento_2 is not null and lower(apelido) <> 'teste' order by criada_em`;
   const sessoes: SessaoCorrigida[] = [];
   for (const s of linhas) {
     sessoes.push({

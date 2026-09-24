@@ -21,18 +21,27 @@ async function json(url: string, init?: RequestInit) {
 }
 
 export async function iniciarConversa({ sessaoId, atendimento, aoFalar, aoEstado }: Opcoes) {
+  const ctx = new AudioContext();
+  ctx.resume();
   aoEstado("conectando");
-  const config = await json(`/api/sessoes/${sessaoId}/atendimentos/${atendimento}/config`);
+  let config: unknown;
+  try {
+    config = await json(`/api/sessoes/${sessaoId}/atendimentos/${atendimento}/config`);
+  } catch (e) {
+    ctx.close();
+    throw e;
+  }
   let pronto = false;
   let encerrado = false;
   let ultimaFala = "";
   let ws: WebSocket | null = null;
   let audio: Awaited<ReturnType<typeof abrirAudio>>;
   try {
-    audio = await abrirAudio((b64) => {
+    audio = await abrirAudio(ctx, (b64) => {
       if (pronto && ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "input.audio", audio: b64 }));
     });
   } catch {
+    ctx.close();
     aoEstado("erro", "Sem acesso ao microfone. Libere o microfone no navegador e tente de novo.");
     throw new Error("microfone");
   }
@@ -54,22 +63,18 @@ export async function iniciarConversa({ sessaoId, atendimento, aoFalar, aoEstado
   ws = socket;
   const fila = criarFila((m) => socket.send(JSON.stringify(m)));
 
-  function fechar() {
+  function fechar(estado: EstadoConversa, detalhe?: string, avisar = false) {
     if (encerrado) return;
     encerrado = true;
     window.removeEventListener("pagehide", aoSair);
+    if (avisar && socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: "session.end" }));
+    socket.close();
     audio.fechar();
-    aoEstado("encerrado");
+    aoEstado(estado, detalhe);
   }
 
   socket.onopen = () => socket.send(JSON.stringify({ type: "session.update", session: config }));
-  socket.onclose = () => {
-    if (encerrado) return;
-    encerrado = true;
-    window.removeEventListener("pagehide", aoSair);
-    audio.fechar();
-    aoEstado("erro", "A conexão caiu.");
-  };
+  socket.onclose = () => fechar("erro", "A conexão caiu.");
   socket.onmessage = async (ev) => {
     const msg = JSON.parse(ev.data);
     fila.evento(msg.type, msg.status);
@@ -88,14 +93,14 @@ export async function iniciarConversa({ sessaoId, atendimento, aoFalar, aoEstado
         const { resposta } = await json("/api/ficha", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ sessaoId, atendimento, assunto: msg.arguments.assunto, ultimaFala }),
+          body: JSON.stringify({ sessaoId, atendimento, assunto: msg.arguments.assunto, ultimaFala: ultimaFala.slice(0, 1000) }),
         });
         fila.resultado(msg.call_id, JSON.stringify({ resposta }));
       } catch {
         fila.resultado(msg.call_id, JSON.stringify({ erro: "Não foi possível lembrar agora. Peça para o profissional repetir a pergunta." }));
       }
-    } else if (msg.type === "session.error") aoEstado("erro", msg.message);
-    else if (msg.type === "session.ended") fechar();
+    } else if (msg.type === "session.error" || msg.type === "error") fechar("erro", msg.message ?? "Erro na conversa com o paciente.", true);
+    else if (msg.type === "session.ended") fechar("encerrado");
   };
 
   const aoSair = () => socket.readyState === WebSocket.OPEN && socket.send(JSON.stringify({ type: "session.end" }));
@@ -103,9 +108,7 @@ export async function iniciarConversa({ sessaoId, atendimento, aoFalar, aoEstado
 
   return {
     encerrar() {
-      window.removeEventListener("pagehide", aoSair);
-      if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: "session.end" }));
-      fechar();
+      fechar("encerrado", undefined, true);
     },
   };
 }

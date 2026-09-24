@@ -1,31 +1,28 @@
 export function criarFila(enviar: (msg: object) => void) {
-  let ocupado = false;
-  const aguardando = new Set<string>();
-  const prontos: { call_id: string; result: string }[] = [];
+  const aguardando = new Map<string, string | null>();
+  const liberadas = new Set<string>();
 
-  function drenar() {
-    if (ocupado) return;
-    for (const p of prontos.splice(0)) enviar({ type: "tool.result", call_id: p.call_id, result: p.result });
+  function mandar(callId: string, result: string) {
+    enviar({ type: "tool.result", call_id: callId, result });
   }
 
   return {
     evento(tipo: string, status?: string) {
-      if (tipo === "reply.started" || tipo === "input.speech.started") ocupado = true;
-      if (tipo === "reply.done") {
-        ocupado = false;
-        if (status === "interrupted") {
-          aguardando.clear();
-          prontos.length = 0;
-        } else drenar();
+      if (tipo !== "reply.done") return;
+      if (status !== "interrupted") {
+        for (const [callId, result] of aguardando) {
+          if (result === null) liberadas.add(callId);
+          else mandar(callId, result);
+        }
       }
+      aguardando.clear();
     },
     chamada(callId: string) {
-      aguardando.add(callId);
+      aguardando.set(callId, null);
     },
     resultado(callId: string, result: string) {
-      if (!aguardando.delete(callId)) return;
-      prontos.push({ call_id: callId, result });
-      drenar();
+      if (liberadas.delete(callId)) mandar(callId, result);
+      else if (aguardando.has(callId)) aguardando.set(callId, result);
     },
   };
 }

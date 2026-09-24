@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { CASOS_PRIVADOS } from "@/lib/casos/privado";
 import { resolverFicha } from "@/lib/estudo/ficha";
 import { corrigir } from "@/lib/estudo/corrigir";
-import { PARES, parDaVez } from "@/lib/estudo/pares";
+import { PARES, escolherPar } from "@/lib/estudo/pares";
 import { agregar } from "@/lib/estudo/agregar";
 import type { Evento } from "@/lib/casos/tipos";
 
@@ -53,9 +53,16 @@ describe("pares", () => {
     expect(chaves.size).toBe(6);
     for (const [a, b] of PARES) expect(a).not.toBe(b);
   });
-  it("faz rodízio pelo número da sessão", () => {
-    expect(parDaVez(0)).toEqual(PARES[0]);
-    expect(parDaVez(7)).toEqual(PARES[1]);
+  it("sem contagens escolhe o primeiro par", () => {
+    expect(escolherPar({})).toEqual(PARES[0]);
+  });
+  it("escolhe o par menos usado", () => {
+    const contagens = Object.fromEntries(PARES.map((p) => [p.join(">"), 3]));
+    contagens["rafa>davi"] = 1;
+    expect(escolherPar(contagens)).toEqual(["rafa", "davi"]);
+  });
+  it("no empate segue a ordem dos pares", () => {
+    expect(escolherPar({ "davi>joaquim": 2, "joaquim>davi": 1, "davi>rafa": 2, "rafa>davi": 1, "joaquim>rafa": 1, "rafa>joaquim": 1 })).toEqual(PARES[1]);
   });
 });
 

@@ -9,6 +9,10 @@ export const PARES: [CasoId, CasoId][] = [
   ["rafa", "joaquim"],
 ];
 
-export function parDaVez(n: number): [CasoId, CasoId] {
-  return PARES[n % PARES.length];
+export function escolherPar(contagens: Record<string, number>): [CasoId, CasoId] {
+  let melhor = PARES[0];
+  for (const par of PARES) {
+    if ((contagens[par.join(">")] ?? 0) < (contagens[melhor.join(">")] ?? 0)) melhor = par;
+  }
+  return melhor;
 }

@@ -5,9 +5,7 @@ function paraBase64(buffer: ArrayBuffer) {
   return btoa(binario);
 }
 
-export async function abrirAudio(aoCapturar: (base64: string) => void) {
-  const ctx = new AudioContext();
-  await ctx.resume();
+export async function abrirAudio(ctx: AudioContext, aoCapturar: (base64: string) => void) {
   await ctx.audioWorklet.addModule("/pcm-processor.js");
   const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: false } });
   const fonte = ctx.createMediaStreamSource(stream);

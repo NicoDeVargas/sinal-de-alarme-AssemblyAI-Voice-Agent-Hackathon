@@ -35,6 +35,16 @@ describe("criarFila", () => {
     expect(enviados).toEqual([]);
   });
 
+  it("envia na hora o resultado de chamada cujo turno já terminou, mesmo com fala nova do usuário", () => {
+    const { enviados, fila } = montar();
+    fila.evento("reply.started");
+    fila.chamada("c1");
+    fila.evento("reply.done", "completed");
+    fila.evento("input.speech.started");
+    fila.resultado("c1", "{}");
+    expect(enviados).toEqual([{ type: "tool.result", call_id: "c1", result: "{}" }]);
+  });
+
   it("ignora resultado de chamada desconhecida", () => {
     const { enviados, fila } = montar();
     fila.resultado("x", "{}");

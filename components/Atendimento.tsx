@@ -41,8 +41,14 @@ export function Atendimento({ sessaoId, atendimento, caso, aoDecidir }: { sessao
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ sessaoId, atendimento, encaminhamento }),
     });
-    if (r.ok) aoDecidir(await r.json());
-    else setErroDecisao((await r.json().catch(() => ({}))).erro ?? "Não foi possível registrar a decisão. Tente de novo.");
+    if (r.ok) return aoDecidir(await r.json());
+    const corpo = await r.json().catch(() => ({}));
+    if (r.status === 409) {
+      const sessao = await fetch(`/api/sessoes/${sessaoId}`).then((x) => (x.ok ? x.json() : null)).catch(() => null);
+      const correcao = sessao?.correcoes?.[atendimento - 1];
+      if (correcao) return aoDecidir(correcao);
+    }
+    setErroDecisao(corpo.erro ?? "Não foi possível registrar a decisão. Tente de novo.");
   }
 
   return (
@@ -51,10 +57,8 @@ export function Atendimento({ sessaoId, atendimento, caso, aoDecidir }: { sessao
       <h2 className="text-2xl font-bold">{caso.titulo}</h2>
       <p>{caso.contexto}</p>
       {!caso.revisadoPor && <p className="text-xs text-amber-700">Rascunho, sem revisão clínica.</p>}
-      {!decidindo && (estado === "parado" || estado === "erro") && (
-        <button onClick={comecar} className="w-full rounded bg-red-700 p-3 font-semibold text-white">
-          {estado === "erro" ? "Retomar atendimento" : "Bater na porta"}
-        </button>
+      {!decidindo && estado === "parado" && (
+        <button onClick={comecar} className="w-full rounded bg-red-700 p-3 font-semibold text-white">Bater na porta</button>
       )}
       {estado === "conectando" && <p>Conectando…</p>}
       {detalhe && <p className="text-red-700">{detalhe}</p>}
@@ -68,7 +72,7 @@ export function Atendimento({ sessaoId, atendimento, caso, aoDecidir }: { sessao
       {estado === "pronto" && !decidindo && (
         <button onClick={decidir} className="w-full rounded border-2 border-red-700 p-3 font-semibold text-red-700">Decidir o encaminhamento</button>
       )}
-      {estado === "encerrado" && !decidindo && (
+      {(estado === "encerrado" || estado === "erro") && !decidindo && (
         <div className="space-y-2">
           <button onClick={comecar} className="w-full rounded bg-red-700 p-3 font-semibold text-white">Retomar atendimento</button>
           <button onClick={decidir} className="w-full rounded border-2 border-red-700 p-3 font-semibold text-red-700">Decidir o encaminhamento</button>
