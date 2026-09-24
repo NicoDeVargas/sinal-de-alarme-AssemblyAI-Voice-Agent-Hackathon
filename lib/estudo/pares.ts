@@ -1,13 +1,8 @@
-import type { CasoId } from "@/lib/casos/tipos";
+import { CASO_IDS, type CasoId } from "@/lib/casos/tipos";
 
-export const PARES: [CasoId, CasoId][] = [
-  ["davi", "joaquim"],
-  ["joaquim", "davi"],
-  ["davi", "rafa"],
-  ["rafa", "davi"],
-  ["joaquim", "rafa"],
-  ["rafa", "joaquim"],
-];
+export const PARES: [CasoId, CasoId][] = CASO_IDS.flatMap((a) =>
+  CASO_IDS.filter((b) => b !== a).map((b): [CasoId, CasoId] => [a, b]),
+);
 
 export function escolherPar(contagens: Record<string, number>): [CasoId, CasoId] {
   let melhor = PARES[0];

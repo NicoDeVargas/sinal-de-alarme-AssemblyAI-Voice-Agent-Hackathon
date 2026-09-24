@@ -34,6 +34,7 @@ export function montarSessao(caso: CasoPublico): SessaoVoz {
     "- Se a pergunta for genérica, como 'mais alguma coisa?', repita só o que está acima, sem chamar a ferramenta.",
     "- Se a ferramenta devolver erro, peça para o profissional repetir a pergunta.",
     "- Se o profissional disser o que você deve fazer, agradeça e diga que vai seguir a orientação.",
+    `Em algum momento natural, depois de pelo menos três trocas ou quando o profissional começar a orientar, pergunte uma única vez: "${caso.perguntaDoPaciente}". Depois, reaja à resposta com naturalidade.`,
   ].join("\n");
 
   return {

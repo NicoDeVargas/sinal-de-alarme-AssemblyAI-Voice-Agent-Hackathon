@@ -2,8 +2,8 @@ import type { CasoPrivado, Correcao, Encaminhamento, Evento } from "@/lib/casos/
 
 export function corrigir(caso: CasoPrivado, eventos: Evento[], escolhido: Encaminhamento): Correcao {
   const ordenados = [...eventos].sort((a, b) => a.criadoEm.localeCompare(b.criadoEm));
-  const sinais = caso.sinais.map((s) => {
-    const primeiro = ordenados.find((e) => e.sinal === s.id);
+  const sinais = caso.achados.map((s) => {
+    const primeiro = ordenados.find((e) => e.achado === s.id);
     return primeiro
       ? { id: s.id, nome: s.nome, descoberto: true, evidencia: primeiro.ultimaFala }
       : { id: s.id, nome: s.nome, descoberto: false, evidencia: s.perguntaModelo };

@@ -15,7 +15,8 @@ export const ASSUNTOS = [
 ] as const;
 
 export type Assunto = (typeof ASSUNTOS)[number];
-export type CasoId = "davi" | "joaquim" | "rafa";
+export type CasoId = "davi" | "joaquim" | "rafa" | "juliana" | "celia";
+export const CASO_IDS: CasoId[] = ["davi", "joaquim", "rafa", "juliana", "celia"];
 export type Encaminhamento = "A" | "B" | "C";
 export type Papel = "acs" | "tecnico_enfermagem" | "estudante_medicina" | "estudante_enfermagem" | "outro";
 
@@ -41,37 +42,53 @@ export interface CasoPublico {
   persona: string;
   queixa: string;
   saudacao: string;
+  perguntaDoPaciente: string;
   revisadoPor: string | null;
   revisadoEm: string | null;
 }
 
-export interface Sinal {
+export interface Achado {
   id: string;
   nome: string;
+  tipo: "alarme" | "risco";
   perguntaModelo: string;
 }
 
 export interface EntradaFicha {
   fato: string;
-  sinal?: string;
+  achado?: string;
 }
 
 export interface CasoPrivado {
   id: CasoId;
   respostaNormal: string;
   ficha: Partial<Record<Assunto, EntradaFicha>>;
-  sinais: Sinal[];
+  achados: Achado[];
   encaminhamento: Encaminhamento;
   motivo: string;
+  respostaEsperada: string;
   palavrasProibidas: string[];
 }
 
 export interface Evento {
   assunto: Assunto;
-  sinal: string | null;
+  achado: string | null;
   ultimaFala: string;
   criadoEm: string;
 }
+
+export const ANAMNESE: { id: string; nome: string; assuntos: Assunto[]; perguntaModelo: string }[] = [
+  { id: "dia_da_doenca", nome: "Há quantos dias começou a febre", assuntos: ["evolucao_da_febre"], perguntaModelo: "Há quantos dias começou a febre? Ela já passou?" },
+  { id: "hidratacao", nome: "Hidratação e diurese", assuntos: ["alimentacao_hidratacao", "urina"], perguntaModelo: "Está conseguindo beber líquido? Está urinando normal?" },
+  { id: "doencas_remedios", nome: "Doenças e remédios em uso", assuntos: ["doencas_e_remedios"], perguntaModelo: "Tem alguma doença? Está tomando algum remédio?" },
+];
+
+export const ORIENTACOES: { id: string; nome: string; criterio: string }[] = [
+  { id: "hidratacao_oral", nome: "Hidratação oral", criterio: "orientou beber mais líquido (água, soro, sucos)" },
+  { id: "sem_aas_aine", nome: "Sem AAS ou anti-inflamatório", criterio: "orientou não usar AAS, aspirina, ibuprofeno, diclofenaco ou outro anti-inflamatório" },
+  { id: "sinais_de_retorno", nome: "Sinais para procurar ajuda", criterio: "explicou algum sinal que exige procurar atendimento imediatamente (ex.: vômitos, dor na barriga, sangramento, tontura, sonolência)" },
+  { id: "para_onde_e_quando", nome: "Para onde ir e quando", criterio: "disse para onde a pessoa deve ir (UBS, UPA, pronto-socorro) e quando" },
+];
 
 export interface SinalCorrigido {
   id: string;

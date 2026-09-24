@@ -19,7 +19,7 @@ export async function POST(request: Request) {
   const s = await carregarSessao(sessaoId);
   if (!s) return Response.json({ erro: "sessão não encontrada" }, { status: 404 });
   if (decidido(s, atendimento)) return Response.json({ erro: "atendimento já decidido" }, { status: 409 });
-  const { resposta, sinal } = resolverFicha(CASOS_PRIVADOS[casoDoAtendimento(s, atendimento)], assunto);
-  await sql`insert into eventos (sessao_id, atendimento, assunto, sinal, ultima_fala) values (${s.id}, ${atendimento}, ${assunto}, ${sinal}, ${ultimaFala})`;
+  const { resposta, achado } = resolverFicha(CASOS_PRIVADOS[casoDoAtendimento(s, atendimento)], assunto);
+  await sql`insert into eventos (sessao_id, atendimento, assunto, sinal, ultima_fala) values (${s.id}, ${atendimento}, ${assunto}, ${achado}, ${ultimaFala})`;
   return Response.json({ resposta });
 }

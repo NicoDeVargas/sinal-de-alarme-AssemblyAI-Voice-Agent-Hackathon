@@ -24,7 +24,7 @@ export async function carregarSessao(id: string) {
 export async function carregarEventos(sessaoId: string, atendimento: 1 | 2): Promise<Evento[]> {
   const linhas = await sql<{ assunto: Assunto; sinal: string | null; ultima_fala: string; criado_em: Date }[]>`
     select assunto, sinal, ultima_fala, criado_em from eventos where sessao_id = ${sessaoId} and atendimento = ${atendimento}`;
-  return linhas.map((l) => ({ assunto: l.assunto, sinal: l.sinal, ultimaFala: l.ultima_fala, criadoEm: l.criado_em.toISOString() }));
+  return linhas.map((l) => ({ assunto: l.assunto, achado: l.sinal, ultimaFala: l.ultima_fala, criadoEm: l.criado_em.toISOString() }));
 }
 
 export async function correcoesDa(s: LinhaSessao): Promise<[Correcao | null, Correcao | null]> {
