@@ -124,7 +124,7 @@ describe("verificar", () => {
     expect(com("beba bastante água")).toBe(true);
     expect(com("assim ela é avaliada")).toBe(true);
   });
-  it("descarta comunicação com caracteres CJK ou texto vazio e limpa o comentário", () => {
+  it("descarta comunicação com caracteres não latinos ou texto vazio e limpa o comentário", () => {
     const a = verificar(
       bruta({
         respostaPaciente: { respondeu: true, correta: true, citacao: "só paracetamol", comentario: "  Respondeu bem.  " },
@@ -140,5 +140,25 @@ describe("verificar", () => {
     expect(a.respostaPaciente.comentario).toBe("Respondeu bem.");
     const cjk = verificar(bruta({ respostaPaciente: { respondeu: true, correta: true, citacao: "só paracetamol", comentario: "Bom ひらがな" } }), falas);
     expect(cjk.respostaPaciente).toEqual({ correta: true, citacao: "só paracetamol", comentario: "" });
+  });
+  it("limpa comentário com cirílico e descarta comunicação com cirílico", () => {
+    const a = verificar(bruta({ respostaPaciente: { respondeu: true, correta: true, citacao: "só paracetamol", comentario: "Boa resposta, sem риска" } }), falas);
+    expect(a.respostaPaciente.comentario).toBe("");
+    const b = verificar(
+      bruta({ comunicacao: [{ tipo: "positivo", texto: "риска de comunicação", citacao: "Boa tarde" }] }),
+      falas,
+    );
+    expect(b.comunicacao).toEqual([]);
+  });
+  it("mantém português com acentos no comentário e na comunicação", () => {
+    const a = verificar(
+      bruta({
+        respostaPaciente: { respondeu: true, correta: true, citacao: "só paracetamol", comentario: "Explicação clara e atenção à família." },
+        comunicacao: [{ tipo: "positivo", texto: "Explicou com atenção e organização", citacao: "Boa tarde" }],
+      }),
+      falas,
+    );
+    expect(a.respostaPaciente.comentario).toBe("Explicação clara e atenção à família.");
+    expect(a.comunicacao).toEqual([{ tipo: "positivo", texto: "Explicou com atenção e organização", citacao: "Boa tarde" }]);
   });
 });

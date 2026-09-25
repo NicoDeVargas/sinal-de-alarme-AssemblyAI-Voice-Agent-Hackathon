@@ -1,7 +1,7 @@
 import { ORIENTACOES, type Avaliacao, type AvaliacaoBruta, type Fala } from "@/lib/casos/tipos";
 import { normalizar } from "@/lib/estudo/normalizar";
 
-const CJK = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
+const NAO_LATINO = /[^\p{Script=Latin}\P{L}]/u;
 
 function mapear(texto: string) {
   let normal = "";
@@ -61,10 +61,10 @@ export function verificar(bruta: AvaliacaoBruta, falas: Fala[]): Avaliacao {
     respostaPaciente: {
       correta: r.respondeu && r.correta && citacaoValida,
       citacao: citacaoR,
-      comentario: CJK.test(comentario) ? "" : comentario,
+      comentario: NAO_LATINO.test(comentario) ? "" : comentario,
     },
     comunicacao: bruta.comunicacao
       .map((c) => ({ ...c, texto: c.texto.trim(), citacao: original(c.citacao) ?? "" }))
-      .filter((c) => c.texto !== "" && !CJK.test(c.texto) && c.citacao !== ""),
+      .filter((c) => c.texto !== "" && !NAO_LATINO.test(c.texto) && c.citacao !== ""),
   };
 }

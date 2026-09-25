@@ -20,7 +20,7 @@ export const CASOS_PRIVADOS: Record<CasoId, CasoPrivado> = {
     ],
     encaminhamento: "C",
     motivo: "Vômitos persistentes e sonolência são sinais de alarme. Uma criança com qualquer um deles precisa de avaliação de urgência.",
-    respostaEsperada: "Não. AAS (aspirina) é contraindicado na suspeita de dengue. Para febre, dipirona ou paracetamol na dose indicada, e levar o Davi agora para a urgência.",
+    respostaEsperada: "Não. Aspirina (AAS) é contraindicada na suspeita de dengue. Para febre, dipirona ou paracetamol na dose indicada, e levar o Davi agora para a urgência.",
     palavrasProibidas: ["vomit", "molinho", "sonolen", "dormindo"],
   },
   joaquim: {
