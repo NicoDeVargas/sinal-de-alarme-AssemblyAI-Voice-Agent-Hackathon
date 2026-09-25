@@ -75,7 +75,7 @@ and the correction.
 | Referral | 20 | deterministic, chosen referral vs. the case's correct one |
 | Essential history-taking | 15 | deterministic: asked about fever progression, hydration/urination, and pre-existing conditions and medication |
 | Guidance given | 15 | LLM-graded: oral hydration, avoid aspirin/anti-inflammatories, warning signs to watch for, where and when to go |
-| Answer to the patient's question | 10 | LLM-graded, against an expected answer the model never sees |
+| Answer to the patient's question | 10 | LLM-graded against an expected answer kept server-side (the patient model never sees it) |
 
 The first three dimensions come straight from logged events, no model involved. The
 last two ask the configured LLM to read the full transcript and judge them, but every
