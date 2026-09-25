@@ -1,8 +1,10 @@
 import { abrirAudio } from "./audio";
 import { criarFila } from "./fila";
 import { diagnostico, notificar, registrarErro, registrarEvento } from "./diagnostico";
+import type { Fala } from "@/lib/casos/tipos";
 
 export type EstadoConversa = "conectando" | "pronto" | "encerrado" | "erro";
+export type Voz = "ouvindo" | "paciente";
 export interface Linha {
   id: string;
   quem: "voce" | "paciente";
@@ -18,9 +20,12 @@ export function juntar(texto: string, palavra: string) {
 
 interface Opcoes {
   sessaoId: string;
-  atendimento: 1 | 2;
+  configUrl: string;
+  comFicha: boolean;
+  atendimento?: 1 | 2;
   aoFalar(linha: Linha): void;
   aoEstado(estado: EstadoConversa, detalhe?: string): void;
+  aoVoz?(voz: Voz): void;
 }
 
 async function json(url: string, init?: RequestInit) {
@@ -29,13 +34,24 @@ async function json(url: string, init?: RequestInit) {
   return r.json();
 }
 
-export async function iniciarConversa({ sessaoId, atendimento, aoFalar, aoEstado }: Opcoes) {
+export async function iniciarConversa({ sessaoId, configUrl, comFicha, atendimento, aoFalar: avisarFala, aoEstado, aoVoz }: Opcoes) {
+  const falas = new Map<string, Linha>();
+  const aoFalar = (l: Linha) => {
+    falas.set(l.id, l);
+    avisarFala(l);
+  };
+  let fimDaVoz = 0;
+  const voz = (v: Voz, espera = 0) => {
+    clearTimeout(fimDaVoz);
+    if (espera > 0) fimDaVoz = window.setTimeout(() => aoVoz?.(v), espera);
+    else aoVoz?.(v);
+  };
   const ctx = new AudioContext();
   ctx.resume();
   aoEstado("conectando");
   let config: unknown;
   try {
-    config = await json(`/api/sessoes/${sessaoId}/atendimentos/${atendimento}/config`);
+    config = await json(configUrl);
   } catch (e) {
     ctx.close();
     throw e;
@@ -87,6 +103,7 @@ export async function iniciarConversa({ sessaoId, atendimento, aoFalar, aoEstado
     if (encerrado) return;
     encerrado = true;
     pararLegenda();
+    clearTimeout(fimDaVoz);
     window.removeEventListener("pagehide", aoSair);
     if (avisar && socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: "session.end" }));
     socket.close();
@@ -103,6 +120,7 @@ export async function iniciarConversa({ sessaoId, atendimento, aoFalar, aoEstado
     if (msg.type === "session.ready") {
       pronto = true;
       aoEstado("pronto");
+      voz("ouvindo");
     } else if (msg.type === "input.speech.started") {
       diagnostico.falaDetectada++;
       notificar();
@@ -111,6 +129,7 @@ export async function iniciarConversa({ sessaoId, atendimento, aoFalar, aoEstado
       notificar();
       pararLegenda();
       legenda = { id: msg.reply_id, inicio: null, texto: "", timers: [] };
+      voz("paciente");
     } else if (msg.type === "reply.audio") {
       if (legenda) legenda.inicio ??= audio.proximoInicio();
       audio.tocar(msg.data);
@@ -119,9 +138,11 @@ export async function iniciarConversa({ sessaoId, atendimento, aoFalar, aoEstado
       notificar();
       audio.silenciar();
       pararLegenda();
+      voz("ouvindo");
     } else if (msg.type === "reply.done") {
       diagnostico.respostasCompletas++;
       notificar();
+      voz("ouvindo", audio.proximoInicio() - performance.now());
     } else if (msg.type === "transcript.user.delta") aoFalar({ id: `voce:${msg.item_id}`, quem: "voce", texto: msg.text, parcial: true });
     else if (msg.type === "transcript.user") {
       ultimaFala = msg.text;
@@ -140,7 +161,7 @@ export async function iniciarConversa({ sessaoId, atendimento, aoFalar, aoEstado
     } else if (msg.type === "transcript.agent") {
       if (legenda?.id === msg.reply_id) pararLegenda();
       aoFalar({ id: `paciente:${msg.reply_id}`, quem: "paciente", texto: msg.text, parcial: false });
-    } else if (msg.type === "tool.call" && msg.name === "consultar_ficha") {
+    } else if (comFicha && msg.type === "tool.call" && msg.name === "consultar_ficha") {
       fila.chamada(msg.call_id);
       try {
         const { resposta } = await json("/api/ficha", {
@@ -164,6 +185,11 @@ export async function iniciarConversa({ sessaoId, atendimento, aoFalar, aoEstado
   return {
     encerrar() {
       fechar("encerrado", undefined, true);
+    },
+    transcricao(): Fala[] {
+      return [...falas.values()]
+        .filter((l) => l.texto.trim())
+        .map((l) => ({ quem: l.quem === "voce" ? "profissional" : "paciente", texto: l.texto.trim().slice(0, 1000) }));
     },
   };
 }

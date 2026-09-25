@@ -11,6 +11,7 @@
     "migrar": "node scripts/migrar.mjs"
   },
   "dependencies": {
+    "@phosphor-icons/react": "^2.1.10",
     "next": "16.3.6",
     "postgres": "^3.4.9",
     "react": "19.2.8",

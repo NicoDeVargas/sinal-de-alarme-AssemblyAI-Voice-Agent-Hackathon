@@ -1,19 +1,96 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --fundo: #f2f0ec;
+  --superficie: #fcfbf9;
+  --tinta: #1f1d1a;
+  --suave: #5c5750;
+  --linha: #dcd7cf;
+  --alarme: #b4231b;
+  --alarme-forte: #93190f;
+  --alarme-texto: #a8201a;
+  --alarme-suave: #f7e4e0;
+  --ok: #1d6a47;
+  --ok-suave: #e1eee6;
+  --bolha: #2b2825;
+  --bolha-texto: #f6f4f0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fundo: #161513;
+    --superficie: #1f1d1b;
+    --tinta: #ece8e2;
+    --suave: #aaa39a;
+    --linha: #36322e;
+    --alarme: #c9352b;
+    --alarme-forte: #db4439;
+    --alarme-texto: #f0786c;
+    --alarme-suave: #3a1c18;
+    --ok: #6cc596;
+    --ok-suave: #173127;
+    --bolha: #e6e1da;
+    --bolha-texto: #1c1a18;
+  }
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-fundo: var(--fundo);
+  --color-superficie: var(--superficie);
+  --color-tinta: var(--tinta);
+  --color-suave: var(--suave);
+  --color-linha: var(--linha);
+  --color-alarme: var(--alarme);
+  --color-alarme-forte: var(--alarme-forte);
+  --color-alarme-texto: var(--alarme-texto);
+  --color-alarme-suave: var(--alarme-suave);
+  --color-ok: var(--ok);
+  --color-ok-suave: var(--ok-suave);
+  --color-bolha: var(--bolha);
+  --color-bolha-texto: var(--bolha-texto);
+  --font-sans: var(--fonte-texto);
+  --font-display: var(--fonte-titulo);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--fundo);
+  color: var(--tinta);
+  font-family: var(--fonte-texto), system-ui, sans-serif;
+}
+
+:focus-visible {
+  outline: 3px solid var(--alarme);
+  outline-offset: 2px;
+}
+
+@keyframes entrar {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes pulsar {
+  50% {
+    transform: scale(1.6);
+    opacity: 0.35;
+  }
+}
+
+@keyframes brilho {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .entrar {
+    animation: entrar 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .pulsar {
+    animation: pulsar 1.2s ease-in-out infinite;
+  }
+  .brilho {
+    animation: brilho 1.4s ease-in-out infinite;
+  }
 }
