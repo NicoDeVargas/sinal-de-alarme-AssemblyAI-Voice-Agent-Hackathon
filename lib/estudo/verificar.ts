@@ -1,14 +1,16 @@
 import { ORIENTACOES, type Avaliacao, type AvaliacaoBruta, type Fala } from "@/lib/casos/tipos";
 import { normalizar } from "@/lib/estudo/normalizar";
 
+const CJK = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
+
 export function verificar(bruta: AvaliacaoBruta, falas: Fala[]): Avaliacao {
-  const dito = falas
+  const dito = ` ${falas
     .filter((f) => f.quem === "profissional")
     .map((f) => normalizar(f.texto))
-    .join(" | ");
+    .join(" | ")} `;
   const valida = (citacao: string) => {
     const n = normalizar(citacao);
-    return n.length >= 3 && dito.includes(n);
+    return n.length >= 8 && n.split(" ").length >= 2 && dito.includes(` ${n} `);
   };
   const orientacoes = ORIENTACOES.map((o) => {
     const b = bruta.orientacoes.find((x) => x.id === o.id);
@@ -17,13 +19,16 @@ export function verificar(bruta: AvaliacaoBruta, falas: Fala[]): Avaliacao {
   });
   const r = bruta.respostaPaciente;
   const citacaoValida = valida(r.citacao);
+  const comentario = r.comentario.trim();
   return {
     orientacoes,
     respostaPaciente: {
       correta: r.respondeu && r.correta && citacaoValida,
       citacao: citacaoValida ? r.citacao : null,
-      comentario: r.comentario,
+      comentario: CJK.test(comentario) ? "" : comentario,
     },
-    comunicacao: bruta.comunicacao.filter((c) => valida(c.citacao)),
+    comunicacao: bruta.comunicacao
+      .map((c) => ({ ...c, texto: c.texto.trim() }))
+      .filter((c) => c.texto !== "" && !CJK.test(c.texto) && valida(c.citacao)),
   };
 }

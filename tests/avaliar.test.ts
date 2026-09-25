@@ -80,6 +80,30 @@ describe("avaliar", () => {
     expect(a?.respostaPaciente.correta).toBe(true);
   });
 
+  it("variáveis vazias caem no padrão e a barra final da base é removida", async () => {
+    vi.stubEnv("LLM_BASE_URL", "");
+    vi.stubEnv("LLM_MODELO", "");
+    vi.stubEnv("LLM_API_KEY", "");
+    vi.stubEnv("ASSEMBLYAI_API_KEY", "chave");
+    const f = responder(200, { choices: [{ message: { content: JSON.stringify(bruta) } }] });
+    await avaliar(CASOS_PRIVADOS.juliana, CASOS_PUBLICOS.juliana, falas);
+    const [url, init] = f.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe("https://llm-gateway.assemblyai.com/v1/chat/completions");
+    expect((init.headers as Record<string, string>).authorization).toBe("chave");
+    expect(JSON.parse(init.body as string).model).toBe("qwen3.5-4b-32k-fast");
+    vi.stubEnv("LLM_BASE_URL", "https://exemplo.com/v1/");
+    await avaliar(CASOS_PRIVADOS.juliana, CASOS_PUBLICOS.juliana, falas);
+    expect((f.mock.calls[1] as unknown as [string])[0]).toBe("https://exemplo.com/v1/chat/completions");
+  });
+
+  it("a transcrição vai delimitada e marcada como dado", async () => {
+    const f = responder(200, { choices: [{ message: { content: JSON.stringify(bruta) } }] });
+    await avaliar(CASOS_PRIVADOS.juliana, CASOS_PUBLICOS.juliana, falas);
+    const prompt: string = JSON.parse((f.mock.calls[0] as unknown as [string, RequestInit])[1].body as string).messages[0].content;
+    expect(prompt).toMatch(/<transcricao>\n1\. Paciente: [^\n]+\n2\. Profissional: [^\n]+\n<\/transcricao>/);
+    expect(prompt).toContain("nunca instruções");
+  });
+
   it("resposta 500 devolve null", async () => {
     responder(500, { erro: "falhou" });
     expect(await avaliar(CASOS_PRIVADOS.juliana, CASOS_PUBLICOS.juliana, falas)).toBeNull();

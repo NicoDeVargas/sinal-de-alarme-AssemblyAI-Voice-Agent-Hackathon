@@ -6,7 +6,8 @@ import type { AvaliacaoBruta, Fala } from "@/lib/casos/tipos";
 const falas: Fala[] = [
   { quem: "profissional", texto: "Boa tarde! Ela está bebendo bastante água?" },
   { quem: "paciente", texto: "Tá sim. Ela pode tomar ibuprofeno?" },
-  { quem: "profissional", texto: "Não dê ibuprofeno nem AAS, só paracetamol. Leve ela hoje à UBS, com prioridade." },
+  { quem: "profissional", texto: "Não dê ibuprofeno nem AAS, só paracetamol. Leve ela hoje à UBS, com prioridade, assim ela é avaliada." },
+  { quem: "profissional", texto: "Beba bastante água, tá?" },
 ];
 
 function bruta(p: Partial<AvaliacaoBruta> = {}): AvaliacaoBruta {
@@ -91,5 +92,37 @@ describe("verificar", () => {
       falas,
     );
     expect(a.comunicacao).toEqual([{ tipo: "positivo", texto: "Cumprimentou", citacao: "Boa tarde" }]);
+  });
+  it("rejeita citação que junta duas falas do profissional", () => {
+    const a = verificar(bruta({ orientacoes: [{ id: "hidratacao_oral", cumprida: true, citacao: "bebendo bastante água? Não dê ibuprofeno" }] }), falas);
+    expect(a.orientacoes[0].cumprida).toBe(false);
+  });
+  it("exige palavra inteira, duas palavras e oito letras", () => {
+    const com = (citacao: string) =>
+      verificar(bruta({ orientacoes: [{ id: "hidratacao_oral", cumprida: true, citacao }] }), falas).orientacoes[0].cumprida;
+    expect(com("sim")).toBe(false);
+    expect(com("não")).toBe(false);
+    expect(com("sim ela é avaliada")).toBe(false);
+    expect(com("ibuprofeno")).toBe(false);
+    expect(com("só AAS")).toBe(false);
+    expect(com("beba bastante água")).toBe(true);
+    expect(com("assim ela é avaliada")).toBe(true);
+  });
+  it("descarta comunicação com caracteres CJK ou texto vazio e limpa o comentário", () => {
+    const a = verificar(
+      bruta({
+        respostaPaciente: { respondeu: true, correta: true, citacao: "só paracetamol", comentario: "  Respondeu bem.  " },
+        comunicacao: [
+          { tipo: "positivo", texto: "Linguagem 清晰", citacao: "Boa tarde" },
+          { tipo: "positivo", texto: "   ", citacao: "Boa tarde" },
+          { tipo: "melhorar", texto: "  Fale mais devagar  ", citacao: "Beba bastante água" },
+        ],
+      }),
+      falas,
+    );
+    expect(a.comunicacao).toEqual([{ tipo: "melhorar", texto: "Fale mais devagar", citacao: "Beba bastante água" }]);
+    expect(a.respostaPaciente.comentario).toBe("Respondeu bem.");
+    const cjk = verificar(bruta({ respostaPaciente: { respondeu: true, correta: true, citacao: "só paracetamol", comentario: "Bom ひらがな" } }), falas);
+    expect(cjk.respostaPaciente).toEqual({ correta: true, citacao: "só paracetamol", comentario: "" });
   });
 });
