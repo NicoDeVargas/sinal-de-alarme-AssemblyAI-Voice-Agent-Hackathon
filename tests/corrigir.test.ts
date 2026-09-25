@@ -33,7 +33,7 @@ const avaliacao: Avaliacao = {
 
 describe("corrigir", () => {
   it("juliana com avaliação: partes, itens e nota exatos", () => {
-    const c = corrigir(juliana, julianaPublico, eventos, "A", avaliacao);
+    const c = corrigir(juliana, julianaPublico, eventos, "A", avaliacao, "pt");
     expect(c.achados).toEqual([{ id: "gestacao", nome: "Gestante (grupo de risco)", feito: true, evidencia: "ela pode estar grávida?" }]);
     expect(c.anamnese).toEqual([
       { id: "dia_da_doenca", nome: ANAMNESE[0].nome, feito: true, evidencia: "desde quando a febre?" },
@@ -64,7 +64,7 @@ describe("corrigir", () => {
   });
 
   it("juliana sem avaliação: orientações e pergunta nulas, nota determinística", () => {
-    const c = corrigir(juliana, julianaPublico, eventos, "A", null);
+    const c = corrigir(juliana, julianaPublico, eventos, "A", null, "pt");
     expect(c.orientacoes).toBeNull();
     expect(c.respostaPaciente).toBeNull();
     expect(c.comunicacao).toEqual([]);
@@ -74,7 +74,7 @@ describe("corrigir", () => {
   });
 
   it("sem eventos nada é feito e o achado perdido mostra a pergunta modelo", () => {
-    const c = corrigir(juliana, julianaPublico, [], "B", null);
+    const c = corrigir(juliana, julianaPublico, [], "B", null, "pt");
     expect(c.achados).toEqual([{ id: "gestacao", nome: "Gestante (grupo de risco)", feito: false, evidencia: juliana.achados[0].perguntaModelo }]);
     expect(c.anamnese.every((a) => !a.feito)).toBe(true);
     expect(c.acertou).toBe(true);
@@ -85,7 +85,7 @@ describe("corrigir", () => {
 
 describe("agregar", () => {
   const c = (nota: number, feitos: number, total: number, acertou: boolean): Correcao => {
-    const base = corrigir(juliana, julianaPublico, [], "B", null);
+    const base = corrigir(juliana, julianaPublico, [], "B", null, "pt");
     const achados = Array.from({ length: total }, (_, i) => ({ id: `a${i}`, nome: "", feito: i < feitos, evidencia: "" }));
     return { ...base, nota, achados, acertou };
   };

@@ -1,14 +1,15 @@
-import { ANAMNESE, type Avaliacao, type CasoPrivado, type CasoPublico, type Correcao, type Encaminhamento, type Evento } from "@/lib/casos/tipos";
+import { anamnese as listaAnamnese, type Avaliacao, type CasoPrivado, type CasoPublico, type Correcao, type Encaminhamento, type Evento } from "@/lib/casos/tipos";
+import type { Idioma } from "@/lib/i18n";
 
 const proporcao = (feitos: number, total: number) => (total === 0 ? 0 : feitos / total);
 
-export function corrigir(caso: CasoPrivado, publico: CasoPublico, eventos: Evento[], escolhido: Encaminhamento, avaliacao: Avaliacao | null): Correcao {
+export function corrigir(caso: CasoPrivado, publico: CasoPublico, eventos: Evento[], escolhido: Encaminhamento, avaliacao: Avaliacao | null, idioma: Idioma): Correcao {
   const ordenados = [...eventos].sort((a, b) => a.criadoEm.localeCompare(b.criadoEm));
   const achados = caso.achados.map((a) => {
     const primeiro = ordenados.find((e) => e.achado === a.id);
     return { id: a.id, nome: a.nome, feito: !!primeiro, evidencia: primeiro ? primeiro.ultimaFala : a.perguntaModelo };
   });
-  const anamnese = ANAMNESE.map((a) => {
+  const anamnese = listaAnamnese(idioma).map((a) => {
     const primeiro = ordenados.find((e) => a.assuntos.includes(e.assunto));
     return { id: a.id, nome: a.nome, feito: !!primeiro, evidencia: primeiro ? primeiro.ultimaFala : a.perguntaModelo };
   });

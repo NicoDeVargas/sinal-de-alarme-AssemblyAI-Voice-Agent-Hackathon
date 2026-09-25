@@ -1,4 +1,6 @@
 import type { CasoId, CasoPublico } from "./tipos";
+import type { Idioma } from "@/lib/i18n";
+import { CASOS_PUBLICOS_EN } from "./en/publico";
 
 export const CASOS_PUBLICOS: Record<CasoId, CasoPublico> = {
   davi: {
@@ -10,6 +12,7 @@ export const CASOS_PUBLICOS: Record<CasoId, CasoPublico> = {
     queixa: "o Davi está com febre há 3 dias, chegou a 39 graus, e está chorando mais que o normal",
     saudacao: "Oi, bom dia! Ainda bem que você veio. É o Davi, tá com febre desde domingo e não passa de jeito nenhum.",
     perguntaDoPaciente: "Posso dar aquela aspirina infantil pra baixar a febre dele?",
+    voz: "rafael",
     revisadoPor: null,
     revisadoEm: null,
   },
@@ -22,6 +25,7 @@ export const CASOS_PUBLICOS: Record<CasoId, CasoPublico> = {
     queixa: "teve febre alta nos últimos dias, mas acha que já está melhorando",
     saudacao: "Bom dia, meu filho! Pode sentar. Tive uma febre braba aí, mas acho que já tô melhor.",
     perguntaDoPaciente: "Preciso ir mesmo? Já tô melhor, a febre passou.",
+    voz: "rafael",
     revisadoPor: null,
     revisadoEm: null,
   },
@@ -34,6 +38,7 @@ export const CASOS_PUBLICOS: Record<CasoId, CasoPublico> = {
     queixa: "está com febre há 4 dias e o corpo todo doendo",
     saudacao: "E aí, tudo bem? Pode entrar. Tô meio largado, febre faz uns quatro dias.",
     perguntaDoPaciente: "Posso tomar mais daquele anti-inflamatório? Ajudou na dor.",
+    voz: "rafael",
     revisadoPor: null,
     revisadoEm: null,
   },
@@ -46,6 +51,7 @@ export const CASOS_PUBLICOS: Record<CasoId, CasoPublico> = {
     queixa: "a Juliana está com febre há dois dias e dor no corpo, está deitada lá dentro",
     saudacao: "Oi, boa tarde! É a Juliana, minha esposa, tá de cama com febre desde ontem de manhã.",
     perguntaDoPaciente: "Ela pode tomar aquele remédio de gripe que tem aqui?",
+    voz: "rafael",
     revisadoPor: null,
     revisadoEm: null,
   },
@@ -58,7 +64,10 @@ export const CASOS_PUBLICOS: Record<CasoId, CasoPublico> = {
     queixa: "a mãe está com febre há três dias, dor nas juntas e muito cansada",
     saudacao: "Bom dia! Entra, por favor. É a minha mãe, Dona Célia, tá com febre faz uns três dias.",
     perguntaDoPaciente: "Precisa mesmo levar ela no posto? Ela detesta ir lá.",
+    voz: "rafael",
     revisadoPor: null,
     revisadoEm: null,
   },
 };
+
+export const casosPublicos = (idioma: Idioma) => (idioma === "pt" ? CASOS_PUBLICOS : CASOS_PUBLICOS_EN);

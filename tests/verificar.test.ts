@@ -30,27 +30,27 @@ describe("normalizar", () => {
 
 describe("verificar", () => {
   it("aceita citação com acento e pontuação diferentes", () => {
-    const a = verificar(bruta({ orientacoes: [{ id: "sem_aas_aine", cumprida: true, citacao: "nao de ibuprofeno, nem aas" }] }), falas);
+    const a = verificar(bruta({ orientacoes: [{ id: "sem_aas_aine", cumprida: true, citacao: "nao de ibuprofeno, nem aas" }] }), falas, "pt");
     expect(a.orientacoes.find((o) => o.id === "sem_aas_aine")).toEqual({ id: "sem_aas_aine", nome: "Sem AAS ou anti-inflamatório", cumprida: true, citacao: "Não dê ibuprofeno nem AAS" });
   });
   it("devolve o trecho original da fala quando a citação vem sem acento", () => {
-    const a = verificar(bruta({ respostaPaciente: { respondeu: true, correta: true, citacao: "Nao de ibuprofeno nem AAS so paracetamol", comentario: "" } }), falas);
+    const a = verificar(bruta({ respostaPaciente: { respondeu: true, correta: true, citacao: "Nao de ibuprofeno nem AAS so paracetamol", comentario: "" } }), falas, "pt");
     expect(a.respostaPaciente.citacao).toBe("Não dê ibuprofeno nem AAS, só paracetamol");
   });
   it("aceita fala com acento combinante solto", () => {
     const decomposta: Fala[] = [{ quem: "profissional", texto: "Não dê AAS pra ele, tá?" }];
-    const a = verificar(bruta({ respostaPaciente: { respondeu: true, correta: true, citacao: "nao de aas pra ele", comentario: "" } }), decomposta);
+    const a = verificar(bruta({ respostaPaciente: { respondeu: true, correta: true, citacao: "nao de aas pra ele", comentario: "" } }), decomposta, "pt");
     expect(a.respostaPaciente.citacao).toBe("Não dê AAS pra ele");
   });
   it("preserva a pontuação da fala original", () => {
-    const a = verificar(bruta({ orientacoes: [{ id: "para_onde_e_quando", cumprida: true, citacao: "leve ela hoje a ubs com prioridade assim" }] }), falas);
+    const a = verificar(bruta({ orientacoes: [{ id: "para_onde_e_quando", cumprida: true, citacao: "leve ela hoje a ubs com prioridade assim" }] }), falas, "pt");
     expect(a.orientacoes.find((o) => o.id === "para_onde_e_quando")?.citacao).toBe("Leve ela hoje à UBS, com prioridade, assim");
   });
   it("mapeia a citação para o texto original sem mudar a normalização", () => {
-    for (const f of falas) expect(verificar(bruta({ comunicacao: [{ tipo: "positivo", texto: "x", citacao: f.texto }] }), falas).comunicacao.length).toBe(f.quem === "profissional" ? 1 : 0);
+    for (const f of falas) expect(verificar(bruta({ comunicacao: [{ tipo: "positivo", texto: "x", citacao: f.texto }] }), falas, "pt").comunicacao.length).toBe(f.quem === "profissional" ? 1 : 0);
   });
   it("rejeita citação inventada", () => {
-    const a = verificar(bruta({ orientacoes: [{ id: "hidratacao_oral", cumprida: true, citacao: "beba bastante soro caseiro" }] }), falas);
+    const a = verificar(bruta({ orientacoes: [{ id: "hidratacao_oral", cumprida: true, citacao: "beba bastante soro caseiro" }] }), falas, "pt");
     expect(a.orientacoes.find((o) => o.id === "hidratacao_oral")).toEqual({ id: "hidratacao_oral", nome: "Hidratação oral", cumprida: false, citacao: null });
   });
   it("rejeita citação de fala do paciente", () => {
@@ -60,16 +60,17 @@ describe("verificar", () => {
         respostaPaciente: { respondeu: true, correta: true, citacao: "Tá sim", comentario: "ok" },
       }),
       falas,
+      "pt",
     );
     expect(a.orientacoes.find((o) => o.id === "sem_aas_aine")?.cumprida).toBe(false);
     expect(a.respostaPaciente).toEqual({ correta: false, citacao: null, comentario: "ok" });
   });
   it("rejeita citação curta demais", () => {
-    const a = verificar(bruta({ orientacoes: [{ id: "para_onde_e_quando", cumprida: true, citacao: "à" }] }), falas);
+    const a = verificar(bruta({ orientacoes: [{ id: "para_onde_e_quando", cumprida: true, citacao: "à" }] }), falas, "pt");
     expect(a.orientacoes.find((o) => o.id === "para_onde_e_quando")?.cumprida).toBe(false);
   });
   it("não cita quando a orientação não foi cumprida", () => {
-    const a = verificar(bruta({ orientacoes: [{ id: "para_onde_e_quando", cumprida: false, citacao: "leve ela hoje à UBS" }] }), falas);
+    const a = verificar(bruta({ orientacoes: [{ id: "para_onde_e_quando", cumprida: false, citacao: "leve ela hoje à UBS" }] }), falas, "pt");
     expect(a.orientacoes.find((o) => o.id === "para_onde_e_quando")).toEqual({ id: "para_onde_e_quando", nome: "Para onde ir e quando", cumprida: false, citacao: null });
   });
   it("descarta id desconhecido e completa ids ausentes como não cumpridos, na ordem de ORIENTACOES", () => {
@@ -81,6 +82,7 @@ describe("verificar", () => {
         ],
       }),
       falas,
+      "pt",
     );
     expect(a.orientacoes.map((o) => [o.id, o.cumprida])).toEqual([
       ["hidratacao_oral", false],
@@ -90,11 +92,11 @@ describe("verificar", () => {
     ]);
   });
   it("resposta ao paciente só é correta com resposta, acerto e citação válida", () => {
-    const certa = verificar(bruta({ respostaPaciente: { respondeu: true, correta: true, citacao: "só paracetamol", comentario: "bom" } }), falas);
+    const certa = verificar(bruta({ respostaPaciente: { respondeu: true, correta: true, citacao: "só paracetamol", comentario: "bom" } }), falas, "pt");
     expect(certa.respostaPaciente).toEqual({ correta: true, citacao: "só paracetamol", comentario: "bom" });
-    const semResposta = verificar(bruta({ respostaPaciente: { respondeu: false, correta: true, citacao: "só paracetamol", comentario: "" } }), falas);
+    const semResposta = verificar(bruta({ respostaPaciente: { respondeu: false, correta: true, citacao: "só paracetamol", comentario: "" } }), falas, "pt");
     expect(semResposta.respostaPaciente.correta).toBe(false);
-    const errada = verificar(bruta({ respostaPaciente: { respondeu: true, correta: false, citacao: "só paracetamol", comentario: "" } }), falas);
+    const errada = verificar(bruta({ respostaPaciente: { respondeu: true, correta: false, citacao: "só paracetamol", comentario: "" } }), falas, "pt");
     expect(errada.respostaPaciente).toEqual({ correta: false, citacao: "só paracetamol", comentario: "" });
   });
   it("remove comunicação sem citação válida", () => {
@@ -106,16 +108,17 @@ describe("verificar", () => {
         ],
       }),
       falas,
+      "pt",
     );
     expect(a.comunicacao).toEqual([{ tipo: "positivo", texto: "Cumprimentou", citacao: "Boa tarde" }]);
   });
   it("rejeita citação que junta duas falas do profissional", () => {
-    const a = verificar(bruta({ orientacoes: [{ id: "hidratacao_oral", cumprida: true, citacao: "bebendo bastante água? Não dê ibuprofeno" }] }), falas);
+    const a = verificar(bruta({ orientacoes: [{ id: "hidratacao_oral", cumprida: true, citacao: "bebendo bastante água? Não dê ibuprofeno" }] }), falas, "pt");
     expect(a.orientacoes[0].cumprida).toBe(false);
   });
   it("exige palavra inteira, duas palavras e oito letras", () => {
     const com = (citacao: string) =>
-      verificar(bruta({ orientacoes: [{ id: "hidratacao_oral", cumprida: true, citacao }] }), falas).orientacoes[0].cumprida;
+      verificar(bruta({ orientacoes: [{ id: "hidratacao_oral", cumprida: true, citacao }] }), falas, "pt").orientacoes[0].cumprida;
     expect(com("sim")).toBe(false);
     expect(com("não")).toBe(false);
     expect(com("sim ela é avaliada")).toBe(false);
@@ -135,18 +138,20 @@ describe("verificar", () => {
         ],
       }),
       falas,
+      "pt",
     );
     expect(a.comunicacao).toEqual([{ tipo: "melhorar", texto: "Fale mais devagar", citacao: "Beba bastante água" }]);
     expect(a.respostaPaciente.comentario).toBe("Respondeu bem.");
-    const cjk = verificar(bruta({ respostaPaciente: { respondeu: true, correta: true, citacao: "só paracetamol", comentario: "Bom ひらがな" } }), falas);
+    const cjk = verificar(bruta({ respostaPaciente: { respondeu: true, correta: true, citacao: "só paracetamol", comentario: "Bom ひらがな" } }), falas, "pt");
     expect(cjk.respostaPaciente).toEqual({ correta: true, citacao: "só paracetamol", comentario: "" });
   });
   it("limpa comentário com cirílico e descarta comunicação com cirílico", () => {
-    const a = verificar(bruta({ respostaPaciente: { respondeu: true, correta: true, citacao: "só paracetamol", comentario: "Boa resposta, sem риска" } }), falas);
+    const a = verificar(bruta({ respostaPaciente: { respondeu: true, correta: true, citacao: "só paracetamol", comentario: "Boa resposta, sem риска" } }), falas, "pt");
     expect(a.respostaPaciente.comentario).toBe("");
     const b = verificar(
       bruta({ comunicacao: [{ tipo: "positivo", texto: "риска de comunicação", citacao: "Boa tarde" }] }),
       falas,
+      "pt",
     );
     expect(b.comunicacao).toEqual([]);
   });
@@ -157,6 +162,7 @@ describe("verificar", () => {
         comunicacao: [{ tipo: "positivo", texto: "Explicou com atenção e organização", citacao: "Boa tarde" }],
       }),
       falas,
+      "pt",
     );
     expect(a.respostaPaciente.comentario).toBe("Explicação clara e atenção à família.");
     expect(a.comunicacao).toEqual([{ tipo: "positivo", texto: "Explicou com atenção e organização", citacao: "Boa tarde" }]);

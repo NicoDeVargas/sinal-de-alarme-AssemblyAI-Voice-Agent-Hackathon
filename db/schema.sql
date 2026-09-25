@@ -47,3 +47,5 @@ create table if not exists avaliacoes (
 );
 
 alter table sessoes add column if not exists preceptor_segundos int;
+
+alter table sessoes add column if not exists idioma text not null default 'pt';

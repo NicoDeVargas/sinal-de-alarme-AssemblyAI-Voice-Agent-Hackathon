@@ -2,6 +2,7 @@ import { abrirAudio } from "./audio";
 import { criarFila } from "./fila";
 import { diagnostico, notificar, registrarErro, registrarEvento } from "./diagnostico";
 import type { Fala } from "@/lib/casos/tipos";
+import { textos, type Idioma } from "@/lib/i18n";
 
 export type EstadoConversa = "conectando" | "pronto" | "encerrado" | "erro";
 export type Voz = "ouvindo" | "paciente";
@@ -20,6 +21,7 @@ export function juntar(texto: string, palavra: string) {
 
 interface Opcoes {
   sessaoId: string;
+  idioma: Idioma;
   configUrl: string;
   comFicha: boolean;
   atendimento?: 1 | 2;
@@ -28,13 +30,14 @@ interface Opcoes {
   aoVoz?(voz: Voz): void;
 }
 
-async function json(url: string, init?: RequestInit) {
+async function json(url: string, idioma: Idioma, init?: RequestInit) {
   const r = await fetch(url, init);
-  if (!r.ok) throw new Error((await r.json().catch(() => ({}))).erro ?? `erro ${r.status}`);
+  if (!r.ok) throw new Error((await r.json().catch(() => ({}))).erro ?? textos[idioma].voz.erroStatus(r.status));
   return r.json();
 }
 
-export async function iniciarConversa({ sessaoId, configUrl, comFicha, atendimento, aoFalar: avisarFala, aoEstado, aoVoz }: Opcoes) {
+export async function iniciarConversa({ sessaoId, idioma, configUrl, comFicha, atendimento, aoFalar: avisarFala, aoEstado, aoVoz }: Opcoes) {
+  const t = textos[idioma].voz;
   const falas = new Map<string, Linha>();
   const aoFalar = (l: Linha) => {
     falas.set(l.id, l);
@@ -52,7 +55,7 @@ export async function iniciarConversa({ sessaoId, configUrl, comFicha, atendimen
   aoEstado("conectando");
   let config: unknown;
   try {
-    config = await json(configUrl);
+    config = await json(configUrl, idioma);
   } catch (e) {
     ctx.close();
     throw e;
@@ -74,12 +77,12 @@ export async function iniciarConversa({ sessaoId, configUrl, comFicha, atendimen
     });
   } catch {
     ctx.close();
-    aoEstado("erro", "Sem acesso ao microfone. Libere o microfone no navegador e tente de novo.");
+    aoEstado("erro", t.semMicrofone);
     throw new Error("microfone");
   }
   let socket: WebSocket;
   try {
-    const { token } = await json("/api/token", {
+    const { token } = await json("/api/token", idioma, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ sessaoId }),
@@ -113,7 +116,7 @@ export async function iniciarConversa({ sessaoId, configUrl, comFicha, atendimen
   }
 
   socket.onopen = () => socket.send(JSON.stringify({ type: "session.update", session: config }));
-  socket.onclose = () => fechar("erro", "A conexão caiu.");
+  socket.onclose = () => fechar("erro", t.conexaoCaiu);
   socket.onmessage = async (ev) => {
     const msg = JSON.parse(ev.data);
     fila.evento(msg.type, msg.status);
@@ -169,18 +172,18 @@ export async function iniciarConversa({ sessaoId, configUrl, comFicha, atendimen
     } else if (comFicha && msg.type === "tool.call" && msg.name === "consultar_ficha") {
       fila.chamada(msg.call_id);
       try {
-        const { resposta } = await json("/api/ficha", {
+        const { resposta } = await json("/api/ficha", idioma, {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ sessaoId, atendimento, assunto: msg.arguments.assunto, ultimaFala: ultimaFala.slice(0, 1000) }),
         });
         fila.resultado(msg.call_id, JSON.stringify({ resposta }));
       } catch {
-        fila.resultado(msg.call_id, JSON.stringify({ erro: "Não foi possível lembrar agora. Peça para o profissional repetir a pergunta." }));
+        fila.resultado(msg.call_id, JSON.stringify({ erro: t.fichaErro }));
       }
     } else if (msg.type === "session.error" || msg.type === "error") {
       registrarErro(msg.message ?? msg.type);
-      fechar("erro", msg.message ?? "Erro na conversa com o paciente.", true);
+      fechar("erro", msg.message ?? t.erroConversa, true);
     } else if (msg.type === "session.ended") fechar("encerrado");
   };
 

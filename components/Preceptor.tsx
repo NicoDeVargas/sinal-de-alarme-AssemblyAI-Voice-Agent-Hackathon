@@ -4,12 +4,14 @@ import { ArrowRight, ChalkboardTeacher, PhoneDisconnect } from "@phosphor-icons/
 import { iniciarConversa, type EstadoConversa, type Linha, type Voz } from "@/lib/voz/conversa";
 import { Conversa } from "./Conversa";
 import { Aviso, EstadoDaVoz, primario, secundario } from "./ui";
+import { textos, type Idioma } from "@/lib/i18n";
 
 const LIMITE = 180;
 
 const relogio = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
-export function Preceptor({ sessaoId, aoTerminar }: { sessaoId: string; aoTerminar(segundos: number): void }) {
+export function Preceptor({ sessaoId, idioma, aoTerminar }: { sessaoId: string; idioma: Idioma; aoTerminar(segundos: number): void }) {
+  const t = textos[idioma].preceptor;
   const [linhas, setLinhas] = useState<Linha[]>([]);
   const [estado, setEstado] = useState<EstadoConversa | "parado">("parado");
   const [voz, setVoz] = useState<Voz>("ouvindo");
@@ -55,9 +57,9 @@ export function Preceptor({ sessaoId, aoTerminar }: { sessaoId: string; aoTermin
         body: JSON.stringify({ segundos }),
       });
       if (r.ok || r.status === 409) return aoTerminar(segundos);
-      setErro("Não foi possível salvar. Tente de novo.");
+      setErro(t.erroSalvar);
     } catch {
-      setErro("Sem conexão com o servidor. Tente de novo.");
+      setErro(t.semConexao);
     }
     terminou.current = false;
     setSalvando(false);
@@ -76,6 +78,7 @@ export function Preceptor({ sessaoId, aoTerminar }: { sessaoId: string; aoTermin
     try {
       const c = await iniciarConversa({
         sessaoId,
+        idioma,
         configUrl: `/api/sessoes/${sessaoId}/preceptor/config`,
         comFicha: false,
         aoFalar: (l) => {
@@ -113,27 +116,25 @@ export function Preceptor({ sessaoId, aoTerminar }: { sessaoId: string; aoTermin
         <div>
           <p className="flex items-center gap-2 text-sm font-semibold text-suave">
             <ChalkboardTeacher size={20} aria-hidden />
-            Antes da próxima visita
+            {t.antes}
           </p>
-          <h1 className="mt-1 font-display text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">Conversa com o preceptor</h1>
+          <h1 className="mt-1 font-display text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">{t.titulo}</h1>
           <p className={`mt-3 max-w-[60ch] leading-relaxed text-suave ${estado === "parado" ? "" : "hidden sm:block"}`}>
-            Um preceptor que já viu sua correção conversa por voz com você por até 3 minutos, para pensar no que faria diferente. É opcional.
+            {t.explicacao}
           </p>
         </div>
       </div>
 
       {estado !== "parado" && (
         <div className="mt-6 flex items-center justify-between gap-4">
-          <EstadoDaVoz estado={estado} voz={voz} nome="O preceptor" />
+          <EstadoDaVoz estado={estado} voz={voz} nome={t.nome} idioma={idioma} />
           {inicio !== null && (
             <p
               role="timer"
               className={`font-display text-5xl font-bold leading-none tabular-nums tracking-tight sm:text-6xl ${restantes <= 30 ? "text-alarme-texto" : ""}`}
             >
               <span aria-hidden>{relogio(restantes)}</span>
-              <span className="sr-only">
-                Faltam {Math.floor(restantes / 60)} min e {restantes % 60} s
-              </span>
+              <span className="sr-only">{t.faltam(Math.floor(restantes / 60), restantes % 60)}</span>
             </p>
           )}
         </div>
@@ -148,20 +149,20 @@ export function Preceptor({ sessaoId, aoTerminar }: { sessaoId: string; aoTermin
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
           <button onClick={comecar} className={`${primario} sm:w-auto`}>
             <ChalkboardTeacher size={20} weight="bold" aria-hidden />
-            Conversar com o preceptor
+            {t.conversar}
           </button>
           <button onClick={() => registrar(0)} disabled={salvando} className={`${secundario} sm:w-auto`}>
-            Pular
+            {t.pular}
             <ArrowRight size={20} weight="bold" aria-hidden />
           </button>
         </div>
       ) : (
         <div className="mt-6">
           {linhas.some((l) => l.texto.trim()) ? (
-            <Conversa linhas={linhas} outro="Preceptor" />
+            <Conversa linhas={linhas} outro={t.rotulo} idioma={idioma} />
           ) : (
             <p className="rounded-2xl border border-dashed border-linha px-5 py-10 text-center text-suave">
-              {estado === "conectando" ? "Chamando o preceptor…" : "A conversa aparece aqui."}
+              {estado === "conectando" ? t.chamando : t.aparece}
             </p>
           )}
         </div>
@@ -173,23 +174,23 @@ export function Preceptor({ sessaoId, aoTerminar }: { sessaoId: string; aoTermin
             {parou && inicio === null ? (
               <>
                 <button onClick={comecar} className={`${secundario} sm:w-auto`}>
-                  Tentar de novo
+                  {t.tentarDeNovo}
                 </button>
                 <button onClick={() => registrar(0)} disabled={salvando} className={`${primario} sm:w-auto`}>
-                  Pular
+                  {t.pular}
                 </button>
               </>
             ) : (
               <button onClick={() => registrar(decorridos)} disabled={salvando} className={`${primario} sm:w-auto`}>
                 {parou ? (
                   <>
-                    Seguir para a próxima visita
+                    {t.seguir}
                     <ArrowRight size={20} weight="bold" aria-hidden />
                   </>
                 ) : (
                   <>
                     <PhoneDisconnect size={20} weight="bold" aria-hidden />
-                    Encerrar conversa
+                    {t.encerrar}
                   </>
                 )}
               </button>

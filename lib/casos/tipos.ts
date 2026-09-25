@@ -1,3 +1,5 @@
+import type { Idioma } from "@/lib/i18n";
+
 export const ASSUNTOS = [
   "sangramento",
   "vomito",
@@ -20,19 +22,7 @@ export const CASO_IDS: CasoId[] = ["davi", "joaquim", "rafa", "juliana", "celia"
 export type Encaminhamento = "A" | "B" | "C";
 export type Papel = "acs" | "tecnico_enfermagem" | "estudante_medicina" | "estudante_enfermagem" | "outro";
 
-export const ENCAMINHAMENTOS: Record<Encaminhamento, string> = {
-  A: "Hidratação e ir à UBS para avaliação",
-  B: "UBS hoje, com prioridade",
-  C: "Urgência agora",
-};
-
-export const PAPEIS: Record<Papel, string> = {
-  acs: "Agente comunitário de saúde",
-  tecnico_enfermagem: "Técnico(a) de enfermagem",
-  estudante_medicina: "Estudante de medicina",
-  estudante_enfermagem: "Estudante de enfermagem",
-  outro: "Outro",
-};
+export const PAPEIS: Papel[] = ["acs", "tecnico_enfermagem", "estudante_medicina", "estudante_enfermagem", "outro"];
 
 export interface CasoPublico {
   id: CasoId;
@@ -43,6 +33,7 @@ export interface CasoPublico {
   queixa: string;
   saudacao: string;
   perguntaDoPaciente: string;
+  voz: string;
   revisadoPor: string | null;
   revisadoEm: string | null;
 }
@@ -77,18 +68,37 @@ export interface Evento {
   criadoEm: string;
 }
 
-export const ANAMNESE: { id: string; nome: string; assuntos: Assunto[]; perguntaModelo: string }[] = [
+type ItemAnamnese = { id: string; nome: string; assuntos: Assunto[]; perguntaModelo: string };
+type ItemOrientacao = { id: string; nome: string; criterio: string };
+
+export const ANAMNESE: ItemAnamnese[] = [
   { id: "dia_da_doenca", nome: "Há quantos dias começou a febre", assuntos: ["evolucao_da_febre"], perguntaModelo: "Há quantos dias começou a febre? Ela já passou?" },
   { id: "hidratacao", nome: "Hidratação e diurese", assuntos: ["alimentacao_hidratacao", "urina"], perguntaModelo: "Está conseguindo beber líquido? Está urinando normal?" },
   { id: "doencas_remedios", nome: "Doenças e remédios em uso", assuntos: ["doencas_e_remedios"], perguntaModelo: "Tem alguma doença? Está tomando algum remédio?" },
 ];
 
-export const ORIENTACOES: { id: string; nome: string; criterio: string }[] = [
+export const ANAMNESE_EN: ItemAnamnese[] = [
+  { id: "dia_da_doenca", nome: "How many days since the fever started", assuntos: ["evolucao_da_febre"], perguntaModelo: "How many days ago did the fever start? Has it gone away?" },
+  { id: "hidratacao", nome: "Fluids and urine output", assuntos: ["alimentacao_hidratacao", "urina"], perguntaModelo: "Are you able to drink fluids? Are you peeing normally?" },
+  { id: "doencas_remedios", nome: "Health conditions and current medications", assuntos: ["doencas_e_remedios"], perguntaModelo: "Do you have any health conditions? Are you taking any medication?" },
+];
+
+export const ORIENTACOES: ItemOrientacao[] = [
   { id: "hidratacao_oral", nome: "Hidratação oral", criterio: "orientou beber mais líquido (água, soro, sucos)" },
   { id: "sem_aas_aine", nome: "Sem AAS ou anti-inflamatório", criterio: "orientou não usar AAS, aspirina, ibuprofeno, diclofenaco ou outro anti-inflamatório" },
   { id: "sinais_de_retorno", nome: "Sinais para procurar ajuda", criterio: "explicou algum sinal que exige procurar atendimento imediatamente (ex.: vômitos, dor na barriga, sangramento, tontura, sonolência)" },
   { id: "para_onde_e_quando", nome: "Para onde ir e quando", criterio: "disse para onde a pessoa deve ir (UBS, UPA, pronto-socorro) e quando" },
 ];
+
+export const ORIENTACOES_EN: ItemOrientacao[] = [
+  { id: "hidratacao_oral", nome: "Oral fluids", criterio: "told the patient to drink more fluids (water, oral rehydration solution, juice)" },
+  { id: "sem_aas_aine", nome: "No aspirin or anti-inflammatories", criterio: "told the patient not to use aspirin (AAS), ibuprofen, diclofenac or any other anti-inflammatory" },
+  { id: "sinais_de_retorno", nome: "Signs to seek help", criterio: "explained at least one sign that means seeking care right away (e.g. vomiting, belly pain, bleeding, dizziness, drowsiness)" },
+  { id: "para_onde_e_quando", nome: "Where to go and when", criterio: "said where the person should go (health clinic/UBS, UPA, emergency room) and when" },
+];
+
+export const anamnese = (idioma: Idioma) => (idioma === "pt" ? ANAMNESE : ANAMNESE_EN);
+export const orientacoes = (idioma: Idioma) => (idioma === "pt" ? ORIENTACOES : ORIENTACOES_EN);
 
 export interface Fala {
   quem: "profissional" | "paciente";

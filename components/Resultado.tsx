@@ -4,14 +4,15 @@ import Link from "next/link";
 import { ArrowRight, ArrowUpRight } from "@phosphor-icons/react";
 import type { CasoPublico, Correcao } from "@/lib/casos/tipos";
 import { Aviso, Selo } from "./ui";
+import { sufixo, textos, type Idioma } from "@/lib/i18n";
 
-function Linha({ rotulo, antes, depois }: { rotulo: string; antes: React.ReactNode; depois: React.ReactNode }) {
+function Linha({ rotulo, antes, depois, para }: { rotulo: string; antes: React.ReactNode; depois: React.ReactNode; para: string }) {
   return (
     <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-4 border-t border-linha py-4">
       <dt className="font-semibold">{rotulo}</dt>
       <dd className="flex items-baseline gap-3 tabular-nums">
         <span className="text-suave">{antes}</span>
-        <ArrowRight size={16} className="self-center text-suave" aria-label="para" />
+        <ArrowRight size={16} className="self-center text-suave" aria-label={para} />
         <span className="font-semibold">{depois}</span>
       </dd>
     </div>
@@ -20,23 +21,26 @@ function Linha({ rotulo, antes, depois }: { rotulo: string; antes: React.ReactNo
 
 export function Resultado({
   sessaoId,
+  idioma,
   casos,
   c1,
   c2,
   preparoInicial,
 }: {
   sessaoId: string;
+  idioma: Idioma;
   casos: [CasoPublico, CasoPublico];
   c1: Correcao;
   c2: Correcao;
   preparoInicial: number | null;
 }) {
+  const t = textos[idioma].resultado;
+  const para = textos[idioma].ui.para;
   const [preparo, setPreparo] = useState(preparoInicial);
   const [enviando, setEnviando] = useState<number | null>(null);
   const [erro, setErro] = useState("");
-  const achados = (c: Correcao) => `${c.achados.filter((a) => a.feito).length} de ${c.achados.length}`;
+  const achados = (c: Correcao) => t.deN(c.achados.filter((a) => a.feito).length, c.achados.length);
   const diferenca = c2.nota - c1.nota;
-  const pontos = (n: number) => `${n} ${n === 1 ? "ponto" : "pontos"}`;
 
   async function responder(n: number) {
     setErro("");
@@ -48,40 +52,40 @@ export function Resultado({
         body: JSON.stringify({ preparo: n }),
       });
       if (r.ok) setPreparo(n);
-      else setErro("Não foi possível salvar. Tente de novo.");
+      else setErro(t.erroSalvar);
     } catch {
-      setErro("Sem conexão com o servidor. Tente de novo.");
+      setErro(t.semConexao);
     }
     setEnviando(null);
   }
 
   return (
     <article className="mx-auto max-w-3xl">
-      <p className="text-sm font-semibold text-suave">Fim do treino</p>
-      <h1 className="mt-1 font-display text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">Seu resultado</h1>
+      <p className="text-sm font-semibold text-suave">{t.fim}</p>
+      <h1 className="mt-1 font-display text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">{t.titulo}</h1>
 
       <div className="mt-8 grid grid-cols-[auto_auto_auto] items-end justify-start gap-4 sm:gap-8">
         <div>
           <p className="text-sm text-suave">{casos[0].titulo}</p>
           <p className="font-display text-6xl font-bold leading-none tracking-tighter text-suave tabular-nums sm:text-7xl">{c1.nota}</p>
         </div>
-        <ArrowRight size={32} className="mb-2 text-suave" aria-label="para" />
+        <ArrowRight size={32} className="mb-2 text-suave" aria-label={para} />
         <div>
           <p className="text-sm text-suave">{casos[1].titulo}</p>
           <p className="font-display text-6xl font-bold leading-none tracking-tighter tabular-nums sm:text-7xl">{c2.nota}</p>
         </div>
       </div>
       <p className="mt-4 text-lg">
-        {diferenca > 0 ? `Sua nota subiu ${pontos(diferenca)}.` : diferenca < 0 ? `Sua nota caiu ${pontos(-diferenca)}.` : "Sua nota ficou igual."} Os casos são diferentes, então compare com cuidado.
+        {diferenca > 0 ? t.subiu(t.pontos(diferenca)) : diferenca < 0 ? t.caiu(t.pontos(-diferenca)) : t.igual} {t.cuidado}
       </p>
 
       <dl className="mt-8 border-b border-linha">
-        <Linha rotulo="Achados críticos" antes={achados(c1)} depois={achados(c2)} />
+        <Linha rotulo={t.achados} antes={achados(c1)} depois={achados(c2)} para={para} />
         <div className="grid gap-3 border-t border-linha py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-4">
-          <dt className="font-semibold">Encaminhamento</dt>
+          <dt className="font-semibold">{t.encaminhamento}</dt>
           <dd className="flex flex-wrap items-center gap-x-5 gap-y-2 sm:justify-end">
-            <Selo feito={c1.acertou} sim="Visita 1: acertou" nao="Visita 1: errou" />
-            <Selo feito={c2.acertou} sim="Visita 2: acertou" nao="Visita 2: errou" />
+            <Selo feito={c1.acertou} sim={t.visitaAcertou(1)} nao={t.visitaErrou(1)} />
+            <Selo feito={c2.acertou} sim={t.visitaAcertou(2)} nao={t.visitaErrou(2)} />
           </dd>
         </div>
       </dl>
@@ -90,7 +94,7 @@ export function Resultado({
         {preparo === null ? (
           <>
             <h2 id="preparo" className="font-display text-xl font-semibold leading-snug tracking-tight sm:text-2xl">
-              Você se sente mais preparado(a) para reconhecer um sinal de alarme?
+              {t.preparo}
             </h2>
             <div role="group" aria-labelledby="preparo" className="mt-5 grid grid-cols-5 gap-2 sm:max-w-md">
               {[1, 2, 3, 4, 5].map((n) => (
@@ -105,8 +109,8 @@ export function Resultado({
               ))}
             </div>
             <div className="mt-2 flex justify-between text-sm text-suave sm:max-w-md">
-              <span>Nada</span>
-              <span>Muito</span>
+              <span>{t.nada}</span>
+              <span>{t.muito}</span>
             </div>
             {erro && (
               <div className="mt-4">
@@ -116,13 +120,13 @@ export function Resultado({
           </>
         ) : (
           <>
-            <h2 className="font-display text-xl font-semibold tracking-tight sm:text-2xl">Obrigado por treinar.</h2>
-            <p className="mt-2 leading-relaxed text-suave">Sua resposta entra, sem o seu apelido, no painel do estudo.</p>
+            <h2 className="font-display text-xl font-semibold tracking-tight sm:text-2xl">{t.obrigado}</h2>
+            <p className="mt-2 leading-relaxed text-suave">{t.painelNota}</p>
           </>
         )}
       </section>
-      <Link href="/estudo" className="mt-6 inline-flex min-h-11 items-center gap-1.5 font-semibold text-alarme-texto underline underline-offset-4">
-        Ver o painel do estudo
+      <Link href={`/estudo${sufixo(idioma)}`} className="mt-6 inline-flex min-h-11 items-center gap-1.5 font-semibold text-alarme-texto underline underline-offset-4">
+        {t.verPainel}
         <ArrowUpRight size={18} weight="bold" aria-hidden />
       </Link>
     </article>

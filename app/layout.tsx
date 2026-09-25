@@ -15,7 +15,7 @@ const titulo = Bricolage_Grotesque({
 
 export const metadata: Metadata = {
   title: "Sinal de Alarme",
-  description: "Treino por voz para reconhecer os sinais de alarme da dengue.",
+  description: "Voice training to recognize the warning signs of dengue.",
 };
 
 export const viewport: Viewport = {
@@ -27,7 +27,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="pt-BR" className={`${texto.variable} ${titulo.variable} h-full antialiased`}>
+    <html lang="en" className={`${texto.variable} ${titulo.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">{children}</body>
     </html>
   );

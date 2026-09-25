@@ -1,7 +1,8 @@
 import "server-only";
 import { sql } from "@/lib/db";
-import { CASOS_PRIVADOS } from "@/lib/casos/privado";
-import { CASOS_PUBLICOS } from "@/lib/casos/publico";
+import { casosPrivados } from "@/lib/casos/privado";
+import { casosPublicos } from "@/lib/casos/publico";
+import type { Idioma } from "@/lib/i18n";
 import { corrigir } from "@/lib/estudo/corrigir";
 import type { Assunto, Avaliacao, CasoId, Correcao, Encaminhamento, Evento, Papel } from "@/lib/casos/tipos";
 
@@ -15,11 +16,12 @@ export interface LinhaSessao {
   preparo: number | null;
   tokens: number;
   preceptor_segundos: number | null;
+  idioma: Idioma;
 }
 
 export async function carregarSessao(id: string) {
   if (!/^[0-9a-f-]{36}$/.test(id)) return null;
-  const [linha] = await sql<LinhaSessao[]>`select id, papel, caso_1, caso_2, encaminhamento_1, encaminhamento_2, preparo, tokens, preceptor_segundos from sessoes where id = ${id}`;
+  const [linha] = await sql<LinhaSessao[]>`select id, papel, caso_1, caso_2, encaminhamento_1, encaminhamento_2, preparo, tokens, preceptor_segundos, idioma from sessoes where id = ${id}`;
   return linha ?? null;
 }
 
@@ -61,7 +63,7 @@ async function correcaoDe(s: LinhaSessao, n: 1 | 2): Promise<Correcao | null> {
   const escolhido = n === 1 ? s.encaminhamento_1 : s.encaminhamento_2;
   if (!escolhido) return null;
   const id = casoDoAtendimento(s, n);
-  return corrigir(CASOS_PRIVADOS[id], CASOS_PUBLICOS[id], await carregarEventos(s.id, n), escolhido, await carregarAvaliacao(s.id, n));
+  return corrigir(casosPrivados(s.idioma)[id], casosPublicos(s.idioma)[id], await carregarEventos(s.id, n), escolhido, await carregarAvaliacao(s.id, n), s.idioma);
 }
 
 export async function correcoesDa(s: LinhaSessao): Promise<[Correcao | null, Correcao | null]> {

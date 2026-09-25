@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowRight, ArrowUpRight, Check, Heartbeat, Waveform, X } from "@phosphor-icons/react";
 import type { EstadoConversa, Voz } from "@/lib/voz/conversa";
 import type { CasoPublico } from "@/lib/casos/tipos";
+import { sufixo, textos, type Idioma } from "@/lib/i18n";
 
 export const nomeDe = (caso: CasoPublico) => caso.quem.split(",")[0];
 
@@ -11,20 +12,20 @@ export const primario =
 export const secundario =
   "inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-linha bg-superficie px-5 py-3 font-semibold text-tinta transition active:scale-[0.98] hover:border-suave";
 
-export function Marca() {
+export function Marca({ idioma }: { idioma: Idioma }) {
   return (
-    <Link href="/" className="inline-flex min-h-11 items-center gap-2 font-display text-lg font-semibold tracking-tight">
+    <Link href={`/${sufixo(idioma)}`} className="inline-flex min-h-11 items-center gap-2 font-display text-lg font-semibold tracking-tight">
       <Heartbeat size={22} weight="bold" className="text-alarme-texto" aria-hidden />
       Sinal de Alarme
     </Link>
   );
 }
 
-export function Topo({ children }: { children?: React.ReactNode }) {
+export function Topo({ idioma, children }: { idioma: Idioma; children?: React.ReactNode }) {
   return (
     <header className="border-b border-linha">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-2 sm:px-6">
-        <Marca />
+        <Marca idioma={idioma} />
         {children}
       </div>
     </header>
@@ -51,17 +52,10 @@ export function Citacao({ children, rotulo }: { children: React.ReactNode; rotul
   );
 }
 
-const TEXTO_ESTADO: Record<EstadoConversa | "parado", string> = {
-  parado: "Ainda não começou",
-  conectando: "Conectando…",
-  pronto: "Ouvindo você",
-  encerrado: "Conversa encerrada",
-  erro: "Conversa interrompida",
-};
-
-export function EstadoDaVoz({ estado, voz, nome }: { estado: EstadoConversa | "parado"; voz: Voz; nome: string }) {
+export function EstadoDaVoz({ estado, voz, nome, idioma }: { estado: EstadoConversa | "parado"; voz: Voz; nome: string; idioma: Idioma }) {
+  const t = textos[idioma].ui;
   const falando = estado === "pronto" && voz === "paciente";
-  const texto = falando ? `${nome} está falando` : TEXTO_ESTADO[estado];
+  const texto = falando ? t.falando(nome) : t.estados[estado];
   const cor =
     estado === "erro" ? "bg-alarme" : estado === "pronto" ? "bg-ok" : estado === "conectando" ? "bg-suave" : "bg-linha";
   return (
@@ -79,8 +73,30 @@ export function EstadoDaVoz({ estado, voz, nome }: { estado: EstadoConversa | "p
   );
 }
 
-export function SetaPara() {
-  return <ArrowRight size={16} className="self-center text-suave" aria-label="para" />;
+export function SetaPara({ idioma }: { idioma: Idioma }) {
+  return <ArrowRight size={16} className="self-center text-suave" aria-label={textos[idioma].ui.para} />;
+}
+
+export function SeletorIdioma({ idioma, caminho }: { idioma: Idioma; caminho: string }) {
+  const opcoes: [Idioma, string, string][] = [
+    ["en", "English", caminho],
+    ["pt", "Português", `${caminho}?lang=pt`],
+  ];
+  return (
+    <nav aria-label="Language / Idioma" className="flex items-center gap-1 text-sm">
+      {opcoes.map(([valor, rotulo, href]) =>
+        valor === idioma ? (
+          <span key={valor} lang={valor} aria-current="true" className="inline-flex min-h-11 items-center px-2 font-semibold text-tinta">
+            {rotulo}
+          </span>
+        ) : (
+          <Link key={valor} href={href} lang={valor} hrefLang={valor} className="inline-flex min-h-11 items-center px-2 text-suave underline-offset-4 hover:text-tinta hover:underline">
+            {rotulo}
+          </Link>
+        ),
+      )}
+    </nav>
+  );
 }
 
 export function SetaExterna() {

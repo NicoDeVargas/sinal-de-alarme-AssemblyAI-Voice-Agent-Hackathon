@@ -1,4 +1,5 @@
-import { ORIENTACOES, type Avaliacao, type AvaliacaoBruta, type Fala } from "@/lib/casos/tipos";
+import { orientacoes as listaOrientacoes, type Avaliacao, type AvaliacaoBruta, type Fala } from "@/lib/casos/tipos";
+import type { Idioma } from "@/lib/i18n";
 import { normalizar } from "@/lib/estudo/normalizar";
 
 const NAO_LATINO = /[^\p{Script=Latin}\P{L}]/u;
@@ -35,7 +36,7 @@ function mapear(texto: string) {
   return { texto, normal, inicio, fim };
 }
 
-export function verificar(bruta: AvaliacaoBruta, falas: Fala[]): Avaliacao {
+export function verificar(bruta: AvaliacaoBruta, falas: Fala[], idioma: Idioma): Avaliacao {
   const ditas = falas.filter((f) => f.quem === "profissional").map((f) => mapear(f.texto));
   const original = (citacao: string) => {
     const n = normalizar(citacao);
@@ -47,7 +48,7 @@ export function verificar(bruta: AvaliacaoBruta, falas: Fala[]): Avaliacao {
     return null;
   };
   const valida = (citacao: string) => original(citacao) !== null;
-  const orientacoes = ORIENTACOES.map((o) => {
+  const orientacoes = listaOrientacoes(idioma).map((o) => {
     const b = bruta.orientacoes.find((x) => x.id === o.id);
     const cumprida = !!b && b.cumprida && valida(b.citacao);
     return { id: o.id, nome: o.nome, cumprida, citacao: cumprida ? original(b.citacao) : null };

@@ -1,5 +1,7 @@
 import "server-only";
 import type { CasoId, CasoPrivado } from "./tipos";
+import type { Idioma } from "@/lib/i18n";
+import { CASOS_PRIVADOS_EN } from "./en/privado";
 
 export const CASOS_PRIVADOS: Record<CasoId, CasoPrivado> = {
   davi: {
@@ -101,3 +103,5 @@ export const CASOS_PRIVADOS: Record<CasoId, CasoPrivado> = {
     palavrasProibidas: ["diabet", "insulin", "açúcar", "pressão"],
   },
 };
+
+export const casosPrivados = (idioma: Idioma) => (idioma === "pt" ? CASOS_PRIVADOS : CASOS_PRIVADOS_EN);

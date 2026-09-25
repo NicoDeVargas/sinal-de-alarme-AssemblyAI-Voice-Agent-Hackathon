@@ -1,0 +1,101 @@
+import "server-only";
+import type { CasoId, CasoPrivado } from "../tipos";
+
+export const CASOS_PRIVADOS_EN: Record<CasoId, CasoPrivado> = {
+  davi: {
+    id: "davi",
+    respostaNormal: "No, not that I've noticed.",
+    ficha: {
+      vomito: { fato: "Yeah, he's thrown up about four times just today. Everything I give him comes right back up.", achado: "vomitos_persistentes" },
+      sonolencia_irritabilidade: { fato: "Now that you mention it, he's really floppy, sleeping all the time, and he's hard to wake up.", achado: "letargia" },
+      alimentacao_hidratacao: { fato: "He won't drink his milk properly. He takes a little sip and then it comes back up." },
+      idade: { fato: "One year and eight months." },
+      evolucao_da_febre: { fato: "It started Sunday. It goes down with medicine and then comes back." },
+      doencas_e_remedios: { fato: "I've only given him dipyrone drops. He doesn't have any health problems." },
+      urina: { fato: "He's peeing, his diaper comes out wet." },
+    },
+    achados: [
+      { id: "vomitos_persistentes", nome: "Persistent vomiting", tipo: "alarme", perguntaModelo: "Has he thrown up? How many times today?" },
+      { id: "letargia", nome: "Drowsiness or irritability (lethargy)", tipo: "alarme", perguntaModelo: "Is he floppier or sleepier than usual? Is he hard to wake up?" },
+    ],
+    encaminhamento: "C",
+    motivo: "Persistent vomiting and drowsiness are warning signs. A child with either one needs urgent evaluation.",
+    respostaEsperada: "No. Aspirin is contraindicated when dengue is suspected. For the fever, dipyrone or acetaminophen (paracetamol) at the right dose, and take Davi to emergency care right now.",
+    palavrasProibidas: ["vomit", "throw", "thrown", "floppy", "sleep", "drows"],
+  },
+  joaquim: {
+    id: "joaquim",
+    respostaNormal: "No, I don't have anything like that.",
+    ficha: {
+      tontura_desmaio: { fato: "Oh, when I get out of bed everything goes dark and I have to sit back down. Today I almost fell in the bathroom.", achado: "hipotensao_postural" },
+      falta_de_ar_inchaco: { fato: "Since yesterday I get out of breath when I lie down. I slept sitting up in the armchair.", achado: "acumulo_liquidos" },
+      evolucao_da_febre: { fato: "The fever lasted from Thursday until yesterday morning. Yesterday it broke, thank God." },
+      doencas_e_remedios: { fato: "I have high blood pressure, I take losartan every day." },
+      idade: { fato: "Seventy, I turned seventy in March." },
+      alimentacao_hidratacao: { fato: "I'm not eating much, just drinking a little water here and there." },
+    },
+    achados: [
+      { id: "hipotensao_postural", nome: "Dizziness on standing or near fainting (postural hypotension)", tipo: "alarme", perguntaModelo: "Do you get dizzy when you stand up? Have you fainted?" },
+      { id: "acumulo_liquidos", nome: "Shortness of breath (possible fluid buildup)", tipo: "alarme", perguntaModelo: "Are you having any trouble breathing?" },
+    ],
+    encaminhamento: "C",
+    motivo: "Dizziness on standing and shortness of breath are warning signs. They tend to show up right when the fever goes away, in the critical phase. An older man with high blood pressure and these signs goes to emergency care.",
+    respostaEsperada: "Yes, and right now. When the fever goes away, the most dangerous phase of dengue begins, and dizziness on standing and shortness of breath are warning signs.",
+    palavrasProibidas: ["dizz", "goes dark", "out of breath", "sitting up", "broke"],
+  },
+  rafa: {
+    id: "rafa",
+    respostaNormal: "No, nothing like that.",
+    ficha: {
+      sangramento: { fato: "My gums bled a lot when I brushed this morning. But they always bleed a little, right?", achado: "sangramento_mucosa" },
+      dor_abdominal: { fato: "Yeah, my stomach hurts, a bad pain that hasn't let up since last night.", achado: "dor_abdominal" },
+      alimentacao_hidratacao: { fato: "I'm barely eating anything. Drinking soda." },
+      doencas_e_remedios: { fato: "I don't have anything. I took an anti-inflammatory I had lying around." },
+      evolucao_da_febre: { fato: "It started Saturday and it's still coming and going." },
+      idade: { fato: "Twenty-two." },
+    },
+    achados: [
+      { id: "sangramento_mucosa", nome: "Mucosal bleeding (gums)", tipo: "alarme", perguntaModelo: "Have you had any bleeding? From your gums, your nose?" },
+      { id: "dor_abdominal", nome: "Severe, continuous abdominal pain", tipo: "alarme", perguntaModelo: "Do you have any stomach pain? Is it bad? Does it come and go, or is it constant?" },
+    ],
+    encaminhamento: "C",
+    motivo: "Bleeding gums and severe, continuous abdominal pain are warning signs. On top of that, anti-inflammatories are contraindicated when dengue is suspected.",
+    respostaEsperada: "No. Anti-inflammatories are contraindicated in dengue and raise the risk of bleeding, especially with your gums already bleeding. For pain and fever, dipyrone or acetaminophen (paracetamol).",
+    palavrasProibidas: ["gum", "bleed", "bled", "stomach", "belly", "lying around"],
+  },
+  juliana: {
+    id: "juliana",
+    respostaNormal: "No, nothing like that.",
+    ficha: {
+      gestacao: { fato: "Oh, yes, I'm seven months pregnant. It's our first. I didn't think it mattered for a flu.", achado: "gestacao" },
+      idade: { fato: "Twenty-eight." },
+      evolucao_da_febre: { fato: "It started yesterday morning, a little over 38 degrees." },
+      alimentacao_hidratacao: { fato: "I'm drinking water, eating a little." },
+      urina: { fato: "Normal, I think." },
+      doencas_e_remedios: { fato: "I don't have anything. I took an acetaminophen yesterday." },
+    },
+    achados: [{ id: "gestacao", nome: "Pregnant (risk group)", tipo: "risco", perguntaModelo: "Are you pregnant, or could you be?" }],
+    encaminhamento: "B",
+    motivo: "A pregnant woman with suspected dengue is in a risk group: with no warning signs, she goes to the local health clinic (UBS) today, with priority, for evaluation and follow-up.",
+    respostaEsperada: "Better not. A lot of flu medicines contain aspirin or other ingredients that aren't recommended. During pregnancy, only acetaminophen (paracetamol) if needed, and you should be seen at the health clinic (UBS) today.",
+    palavrasProibidas: ["pregnan", "gestat", "baby", "seven months"],
+  },
+  celia: {
+    id: "celia",
+    respostaNormal: "No, I don't have that.",
+    ficha: {
+      doencas_e_remedios: { fato: "I'm diabetic, I take insulin morning and night. And a blood pressure pill.", achado: "diabetes" },
+      idade: { fato: "Sixty-four." },
+      evolucao_da_febre: { fato: "It started Monday. I still have a fever." },
+      alimentacao_hidratacao: { fato: "I'm eating less, but I'm drinking water." },
+      urina: { fato: "That's normal." },
+    },
+    achados: [
+      { id: "diabetes", nome: "Diabetes on insulin (risk group)", tipo: "risco", perguntaModelo: "Do you have any health conditions, like diabetes or high blood pressure? Do you take any medication?" },
+    ],
+    encaminhamento: "B",
+    motivo: "Diabetes is a risk condition in dengue: even without warning signs, she should be seen today at the local health clinic (UBS), with priority.",
+    respostaEsperada: "Yes, today. A diabetic with suspected dengue is in a risk group and should be seen at the health clinic (UBS) with priority.",
+    palavrasProibidas: ["diabet", "insulin", "sugar", "blood pressure"],
+  },
+};

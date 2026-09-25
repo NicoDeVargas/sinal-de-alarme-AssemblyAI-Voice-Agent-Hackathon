@@ -8,9 +8,11 @@ import { Preceptor } from "@/components/Preceptor";
 import { Resultado } from "@/components/Resultado";
 import { Topo, primario } from "@/components/ui";
 import type { CasoPublico, Correcao as TCorrecao } from "@/lib/casos/tipos";
+import { idiomaDe, sufixo, textos, type Idioma } from "@/lib/i18n";
 
 interface Estado {
   id: string;
+  idioma: Idioma;
   casos: [CasoPublico, CasoPublico];
   correcoes: [TCorrecao | null, TCorrecao | null];
   preparo: number | null;
@@ -20,11 +22,13 @@ interface Estado {
 const ETAPAS = ["Visita 1", "Correção 1", "Preceptor", "Visita 2", "Correção 2", "Resultado"] as const;
 type Etapa = (typeof ETAPAS)[number];
 
-function Progresso({ etapa }: { etapa: Etapa }) {
+function Progresso({ etapa, idioma }: { etapa: Etapa; idioma: Idioma }) {
+  const t = textos[idioma].sessao;
   const atual = ETAPAS.indexOf(etapa);
+  const nome = t.etapas[etapa];
   return (
-    <div className="flex items-center gap-3" aria-label={`Etapa ${atual + 1} de ${ETAPAS.length}: ${etapa}`} role="img">
-      <span className="hidden text-sm font-semibold text-suave sm:inline">{etapa}</span>
+    <div className="flex items-center gap-3" aria-label={t.etapa(atual + 1, ETAPAS.length, nome)} role="img">
+      <span className="hidden text-sm font-semibold text-suave sm:inline">{nome}</span>
       <span className="flex gap-1">
         {ETAPAS.map((e, i) => (
           <span key={e} className={`h-1.5 w-4 rounded-full sm:w-6 ${i < atual ? "bg-tinta" : i === atual ? "bg-alarme" : "bg-linha"}`} />
@@ -34,8 +38,10 @@ function Progresso({ etapa }: { etapa: Etapa }) {
   );
 }
 
-export default function Sessao({ params }: { params: Promise<{ id: string }> }) {
+export default function Sessao({ params, searchParams }: PageProps<"/s/[id]">) {
   const { id } = use(params);
+  const { lang } = use(searchParams);
+  const pedido = idiomaDe(typeof lang === "string" ? lang : null);
   const [s, setS] = useState<Estado | null>(null);
   const [erro, setErro] = useState("");
   const [seguiu, setSeguiu] = useState(false);
@@ -43,9 +49,12 @@ export default function Sessao({ params }: { params: Promise<{ id: string }> }) 
 
   useEffect(() => {
     fetch(`/api/sessoes/${id}`)
-      .then(async (r) => (r.ok ? setS(await r.json()) : setErro("Não encontramos esta sessão. O link pode estar incompleto.")))
-      .catch(() => setErro("Sem conexão com o servidor. Confira a internet e recarregue a página."));
-  }, [id]);
+      .then(async (r) => (r.ok ? setS(await r.json()) : setErro(textos[pedido].sessao.naoEncontrada)))
+      .catch(() => setErro(textos[pedido].sessao.semConexao));
+  }, [id, pedido]);
+
+  const idioma = s?.idioma ?? pedido;
+  const t = textos[idioma].sessao;
 
   const etapa: Etapa | null = !s
     ? null
@@ -67,61 +76,61 @@ export default function Sessao({ params }: { params: Promise<{ id: string }> }) 
 
   if (erro)
     return (
-      <>
-        <Topo />
+      <div lang={textos[idioma].lang} className="contents">
+        <Topo idioma={idioma} />
         <main className="mx-auto w-full max-w-xl px-4 py-16 sm:px-6">
-          <h1 className="font-display text-3xl font-semibold tracking-tight">Algo deu errado</h1>
+          <h1 className="font-display text-3xl font-semibold tracking-tight">{t.algoErrado}</h1>
           <p className="mt-3 leading-relaxed text-suave">{erro}</p>
-          <Link href="/" className={`${primario} mt-8 sm:w-auto`}>
-            Começar um novo treino
+          <Link href={`/${sufixo(idioma)}`} className={`${primario} mt-8 sm:w-auto`}>
+            {t.novoTreino}
           </Link>
         </main>
-      </>
+      </div>
     );
 
   if (!s || !etapa)
     return (
-      <>
-        <Topo />
-        <main className="brilho mx-auto grid w-full max-w-6xl gap-4 px-4 py-10 sm:px-6" role="status" aria-label="Carregando">
+      <div lang={textos[idioma].lang} className="contents">
+        <Topo idioma={idioma} />
+        <main className="brilho mx-auto grid w-full max-w-6xl gap-4 px-4 py-10 sm:px-6" role="status" aria-label={t.carregando}>
           <div className="h-4 w-24 rounded-full bg-linha" />
           <div className="h-10 w-72 max-w-full rounded-xl bg-linha" />
           <div className="h-4 w-96 max-w-full rounded-full bg-linha" />
           <div className="mt-6 h-48 rounded-2xl bg-linha" />
         </main>
-      </>
+      </div>
     );
 
   const [c1, c2] = s.correcoes;
   const decidiu = (n: 0 | 1) => (c: TCorrecao) => setS({ ...s, correcoes: n === 0 ? [c, c2] : [c1, c] });
 
   let conteudo;
-  if (etapa === "Visita 1") conteudo = <Atendimento key="a1" sessaoId={id} atendimento={1} caso={s.casos[0]} aoDecidir={decidiu(0)} />;
+  if (etapa === "Visita 1") conteudo = <Atendimento key="a1" sessaoId={id} idioma={idioma} atendimento={1} caso={s.casos[0]} aoDecidir={decidiu(0)} />;
   else if (etapa === "Correção 1")
     conteudo = (
       <>
-        <Correcao c={c1!} caso={s.casos[0]} atendimento={1} />
-        <Seguir onClick={() => setSeguiu(true)}>Continuar</Seguir>
+        <Correcao c={c1!} caso={s.casos[0]} atendimento={1} idioma={idioma} />
+        <Seguir onClick={() => setSeguiu(true)}>{t.continuar}</Seguir>
       </>
     );
-  else if (etapa === "Preceptor") conteudo = <Preceptor sessaoId={id} aoTerminar={(segundos) => setS({ ...s, preceptorSegundos: segundos })} />;
-  else if (etapa === "Visita 2") conteudo = <Atendimento key="a2" sessaoId={id} atendimento={2} caso={s.casos[1]} aoDecidir={decidiu(1)} />;
+  else if (etapa === "Preceptor") conteudo = <Preceptor sessaoId={id} idioma={idioma} aoTerminar={(segundos) => setS({ ...s, preceptorSegundos: segundos })} />;
+  else if (etapa === "Visita 2") conteudo = <Atendimento key="a2" sessaoId={id} idioma={idioma} atendimento={2} caso={s.casos[1]} aoDecidir={decidiu(1)} />;
   else if (etapa === "Correção 2")
     conteudo = (
       <>
-        <Correcao c={c2!} caso={s.casos[1]} atendimento={2} />
-        <Seguir onClick={() => setVerResultado(true)}>Ver meu resultado</Seguir>
+        <Correcao c={c2!} caso={s.casos[1]} atendimento={2} idioma={idioma} />
+        <Seguir onClick={() => setVerResultado(true)}>{t.verResultado}</Seguir>
       </>
     );
-  else conteudo = <Resultado sessaoId={id} casos={s.casos} c1={c1!} c2={c2!} preparoInicial={s.preparo} />;
+  else conteudo = <Resultado sessaoId={id} idioma={idioma} casos={s.casos} c1={c1!} c2={c2!} preparoInicial={s.preparo} />;
 
   return (
-    <>
-      <Topo>
-        <Progresso etapa={etapa} />
+    <div lang={textos[idioma].lang} className="contents">
+      <Topo idioma={idioma}>
+        <Progresso etapa={etapa} idioma={idioma} />
       </Topo>
       <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-12">{conteudo}</main>
-    </>
+    </div>
   );
 }
 
