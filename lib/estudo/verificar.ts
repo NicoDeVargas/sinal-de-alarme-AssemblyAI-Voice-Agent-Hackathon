@@ -3,32 +3,68 @@ import { normalizar } from "@/lib/estudo/normalizar";
 
 const CJK = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
 
+function mapear(texto: string) {
+  let normal = "";
+  const inicio: number[] = [];
+  const fim: number[] = [];
+  let i = 0;
+  for (const c of texto) {
+    const limpo = c.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "");
+    if (!limpo) {
+      i += c.length;
+      continue;
+    }
+    if (/^[\p{L}\p{N}]+$/u.test(limpo)) {
+      for (const d of limpo) {
+        normal += d;
+        inicio.push(i);
+        fim.push(i + c.length);
+      }
+    } else if (normal && !normal.endsWith(" ")) {
+      normal += " ";
+      inicio.push(i);
+      fim.push(i + c.length);
+    }
+    i += c.length;
+  }
+  if (normal.endsWith(" ")) {
+    normal = normal.slice(0, -1);
+    inicio.pop();
+    fim.pop();
+  }
+  return { texto, normal, inicio, fim };
+}
+
 export function verificar(bruta: AvaliacaoBruta, falas: Fala[]): Avaliacao {
-  const dito = ` ${falas
-    .filter((f) => f.quem === "profissional")
-    .map((f) => normalizar(f.texto))
-    .join(" | ")} `;
-  const valida = (citacao: string) => {
+  const ditas = falas.filter((f) => f.quem === "profissional").map((f) => mapear(f.texto));
+  const original = (citacao: string) => {
     const n = normalizar(citacao);
-    return n.length >= 8 && n.split(" ").length >= 2 && dito.includes(` ${n} `);
+    if (n.length < 8 || n.split(" ").length < 2) return null;
+    for (const d of ditas) {
+      const k = ` ${d.normal} `.indexOf(` ${n} `);
+      if (k >= 0) return d.texto.slice(d.inicio[k], d.fim[k + n.length - 1]);
+    }
+    return null;
   };
+  const valida = (citacao: string) => original(citacao) !== null;
   const orientacoes = ORIENTACOES.map((o) => {
     const b = bruta.orientacoes.find((x) => x.id === o.id);
     const cumprida = !!b && b.cumprida && valida(b.citacao);
-    return { id: o.id, nome: o.nome, cumprida, citacao: cumprida ? b.citacao : null };
+    return { id: o.id, nome: o.nome, cumprida, citacao: cumprida ? original(b.citacao) : null };
   });
   const r = bruta.respostaPaciente;
-  const citacaoValida = valida(r.citacao);
+  const citacaoR = original(r.citacao);
+  const citacaoValida = citacaoR !== null;
   const comentario = r.comentario.trim();
   return {
     orientacoes,
     respostaPaciente: {
       correta: r.respondeu && r.correta && citacaoValida,
-      citacao: citacaoValida ? r.citacao : null,
+      citacao: citacaoR,
       comentario: CJK.test(comentario) ? "" : comentario,
     },
     comunicacao: bruta.comunicacao
-      .map((c) => ({ ...c, texto: c.texto.trim() }))
-      .filter((c) => c.texto !== "" && !CJK.test(c.texto) && valida(c.citacao)),
+      .map((c) => ({ ...c, texto: c.texto.trim(), citacao: original(c.citacao) ?? "" }))
+      .filter((c) => c.texto !== "" && !CJK.test(c.texto) && c.citacao !== ""),
   };
 }

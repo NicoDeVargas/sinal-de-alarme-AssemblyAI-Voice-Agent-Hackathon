@@ -80,8 +80,8 @@ export function Resultado({
         <div className="grid gap-3 border-t border-linha py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-4">
           <dt className="font-semibold">Encaminhamento</dt>
           <dd className="flex flex-wrap items-center gap-x-5 gap-y-2 sm:justify-end">
-            <Selo feito={c1.acertou} sim="Visita 1 certo" nao="Visita 1 errado" />
-            <Selo feito={c2.acertou} sim="Visita 2 certo" nao="Visita 2 errado" />
+            <Selo feito={c1.acertou} sim="Visita 1: acertou" nao="Visita 1: errou" />
+            <Selo feito={c2.acertou} sim="Visita 2: acertou" nao="Visita 2: errou" />
           </dd>
         </div>
       </dl>

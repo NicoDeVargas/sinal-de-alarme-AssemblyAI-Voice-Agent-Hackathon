@@ -2,6 +2,9 @@
 import Link from "next/link";
 import { Check, Heartbeat, Waveform, X } from "@phosphor-icons/react";
 import type { EstadoConversa, Voz } from "@/lib/voz/conversa";
+import type { CasoPublico } from "@/lib/casos/tipos";
+
+export const nomeDe = (caso: CasoPublico) => caso.quem.split(",")[0];
 
 export const primario =
   "inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-alarme px-5 py-3 font-semibold text-white transition active:scale-[0.98] hover:bg-alarme-forte disabled:opacity-50 disabled:active:scale-100";

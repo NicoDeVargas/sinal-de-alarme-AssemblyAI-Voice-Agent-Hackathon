@@ -5,7 +5,7 @@ import { iniciarConversa, type EstadoConversa, type Linha, type Voz } from "@/li
 import { assinar, diagnostico } from "@/lib/voz/diagnostico";
 import { ENCAMINHAMENTOS, type CasoPublico, type Correcao, type Encaminhamento, type Fala } from "@/lib/casos/tipos";
 import { Conversa } from "./Conversa";
-import { Aviso, EstadoDaVoz, primario, secundario } from "./ui";
+import { Aviso, EstadoDaVoz, nomeDe, primario, secundario } from "./ui";
 
 function PainelDiagnostico() {
   const [, forcar] = useState(0);
@@ -16,8 +16,6 @@ function PainelDiagnostico() {
     </pre>
   );
 }
-
-export const nomeDe = (caso: CasoPublico) => caso.quem.split(",")[0];
 
 type Conexao = { encerrar(): void; transcricao(): Fala[] };
 
@@ -33,13 +31,20 @@ export function Atendimento({ sessaoId, atendimento, caso, aoDecidir }: { sessao
   const [debug, setDebug] = useState(false);
   const conversa = useRef<Conexao | null>(null);
   const anteriores = useRef<Fala[]>([]);
+  const geracao = useRef(0);
   const nome = nomeDe(caso);
 
   useEffect(() => {
     setDebug(new URLSearchParams(location.search).get("debug") === "1");
   }, []);
 
-  useEffect(() => () => conversa.current?.encerrar(), []);
+  useEffect(
+    () => () => {
+      geracao.current++;
+      conversa.current?.encerrar();
+    },
+    [],
+  );
 
   async function comecar() {
     setDetalhe("");
@@ -47,27 +52,39 @@ export function Atendimento({ sessaoId, atendimento, caso, aoDecidir }: { sessao
       anteriores.current = [...anteriores.current, ...conversa.current.transcricao()];
       conversa.current = null;
     }
+    const g = ++geracao.current;
+    const vale = () => g === geracao.current;
     try {
-      conversa.current = await iniciarConversa({
+      const c = await iniciarConversa({
         sessaoId,
         atendimento,
         configUrl: `/api/sessoes/${sessaoId}/atendimentos/${atendimento}/config`,
         comFicha: true,
-        aoFalar: (l) => setLinhas((x) => (x.some((y) => y.id === l.id) ? x.map((y) => (y.id === l.id ? l : y)) : [...x, l])),
+        aoFalar: (l) => {
+          if (vale()) setLinhas((x) => (x.some((y) => y.id === l.id) ? x.map((y) => (y.id === l.id ? l : y)) : [...x, l]));
+        },
         aoEstado: (e, d) => {
+          if (!vale()) return;
           setEstado(e);
           if (d) setDetalhe(d);
         },
-        aoVoz: setVoz,
+        aoVoz: (v) => {
+          if (vale()) setVoz(v);
+        },
       });
+      if (vale()) conversa.current = c;
+      else c.encerrar();
     } catch (e) {
+      if (!vale()) return;
       setEstado("erro");
       setDetalhe((d) => d || (e as Error).message);
     }
   }
 
   function decidir() {
+    geracao.current++;
     conversa.current?.encerrar();
+    setEstado((e) => (e === "pronto" || e === "conectando" ? "encerrado" : e));
     setDecidindo(true);
     scrollTo({ top: 0 });
   }

@@ -31,7 +31,23 @@ describe("normalizar", () => {
 describe("verificar", () => {
   it("aceita citação com acento e pontuação diferentes", () => {
     const a = verificar(bruta({ orientacoes: [{ id: "sem_aas_aine", cumprida: true, citacao: "nao de ibuprofeno, nem aas" }] }), falas);
-    expect(a.orientacoes.find((o) => o.id === "sem_aas_aine")).toEqual({ id: "sem_aas_aine", nome: "Sem AAS ou anti-inflamatório", cumprida: true, citacao: "nao de ibuprofeno, nem aas" });
+    expect(a.orientacoes.find((o) => o.id === "sem_aas_aine")).toEqual({ id: "sem_aas_aine", nome: "Sem AAS ou anti-inflamatório", cumprida: true, citacao: "Não dê ibuprofeno nem AAS" });
+  });
+  it("devolve o trecho original da fala quando a citação vem sem acento", () => {
+    const a = verificar(bruta({ respostaPaciente: { respondeu: true, correta: true, citacao: "Nao de ibuprofeno nem AAS so paracetamol", comentario: "" } }), falas);
+    expect(a.respostaPaciente.citacao).toBe("Não dê ibuprofeno nem AAS, só paracetamol");
+  });
+  it("aceita fala com acento combinante solto", () => {
+    const decomposta: Fala[] = [{ quem: "profissional", texto: "Não dê AAS pra ele, tá?" }];
+    const a = verificar(bruta({ respostaPaciente: { respondeu: true, correta: true, citacao: "nao de aas pra ele", comentario: "" } }), decomposta);
+    expect(a.respostaPaciente.citacao).toBe("Não dê AAS pra ele");
+  });
+  it("preserva a pontuação da fala original", () => {
+    const a = verificar(bruta({ orientacoes: [{ id: "para_onde_e_quando", cumprida: true, citacao: "leve ela hoje a ubs com prioridade assim" }] }), falas);
+    expect(a.orientacoes.find((o) => o.id === "para_onde_e_quando")?.citacao).toBe("Leve ela hoje à UBS, com prioridade, assim");
+  });
+  it("mapeia a citação para o texto original sem mudar a normalização", () => {
+    for (const f of falas) expect(verificar(bruta({ comunicacao: [{ tipo: "positivo", texto: "x", citacao: f.texto }] }), falas).comunicacao.length).toBe(f.quem === "profissional" ? 1 : 0);
   });
   it("rejeita citação inventada", () => {
     const a = verificar(bruta({ orientacoes: [{ id: "hidratacao_oral", cumprida: true, citacao: "beba bastante soro caseiro" }] }), falas);

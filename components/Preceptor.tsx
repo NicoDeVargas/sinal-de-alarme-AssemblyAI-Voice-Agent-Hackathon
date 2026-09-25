@@ -20,11 +20,19 @@ export function Preceptor({ sessaoId, aoTerminar }: { sessaoId: string; aoTermin
   const [erro, setErro] = useState("");
   const conversa = useRef<{ encerrar(): void } | null>(null);
   const terminou = useRef(false);
+  const autoEncerrou = useRef(false);
+  const geracao = useRef(0);
 
   const decorridos = inicio === null ? 0 : Math.min(LIMITE, Math.floor((agora - inicio) / 1000));
   const restantes = LIMITE - decorridos;
 
-  useEffect(() => () => conversa.current?.encerrar(), []);
+  useEffect(
+    () => () => {
+      geracao.current++;
+      conversa.current?.encerrar();
+    },
+    [],
+  );
 
   useEffect(() => {
     if (inicio === null || estado !== "pronto") return;
@@ -35,7 +43,9 @@ export function Preceptor({ sessaoId, aoTerminar }: { sessaoId: string; aoTermin
   async function registrar(segundos: number) {
     if (terminou.current) return;
     terminou.current = true;
+    geracao.current++;
     conversa.current?.encerrar();
+    setEstado((e) => (e === "pronto" || e === "conectando" ? "encerrado" : e));
     setSalvando(true);
     setErro("");
     try {
@@ -54,18 +64,25 @@ export function Preceptor({ sessaoId, aoTerminar }: { sessaoId: string; aoTermin
   }
 
   useEffect(() => {
-    if (inicio !== null && restantes === 0) registrar(LIMITE);
+    if (inicio === null || restantes > 0 || autoEncerrou.current) return;
+    autoEncerrou.current = true;
+    registrar(LIMITE);
   });
 
   async function comecar() {
     setDetalhe("");
+    const g = ++geracao.current;
+    const vale = () => g === geracao.current;
     try {
-      conversa.current = await iniciarConversa({
+      const c = await iniciarConversa({
         sessaoId,
         configUrl: `/api/sessoes/${sessaoId}/preceptor/config`,
         comFicha: false,
-        aoFalar: (l) => setLinhas((x) => (x.some((y) => y.id === l.id) ? x.map((y) => (y.id === l.id ? l : y)) : [...x, l])),
+        aoFalar: (l) => {
+          if (vale()) setLinhas((x) => (x.some((y) => y.id === l.id) ? x.map((y) => (y.id === l.id ? l : y)) : [...x, l]));
+        },
         aoEstado: (e, d) => {
+          if (!vale()) return;
           setEstado(e);
           if (d) setDetalhe(d);
           if (e === "pronto") {
@@ -74,9 +91,14 @@ export function Preceptor({ sessaoId, aoTerminar }: { sessaoId: string; aoTermin
             setAgora(t);
           }
         },
-        aoVoz: setVoz,
+        aoVoz: (v) => {
+          if (vale()) setVoz(v);
+        },
       });
+      if (vale()) conversa.current = c;
+      else c.encerrar();
     } catch (e) {
+      if (!vale()) return;
       setEstado("erro");
       setDetalhe((d) => d || (e as Error).message);
     }
@@ -105,10 +127,13 @@ export function Preceptor({ sessaoId, aoTerminar }: { sessaoId: string; aoTermin
           <EstadoDaVoz estado={estado} voz={voz} nome="O preceptor" />
           {inicio !== null && (
             <p
+              role="timer"
               className={`font-display text-5xl font-bold leading-none tabular-nums tracking-tight sm:text-6xl ${restantes <= 30 ? "text-alarme-texto" : ""}`}
-              aria-label={`Faltam ${relogio(restantes)}`}
             >
-              {relogio(restantes)}
+              <span aria-hidden>{relogio(restantes)}</span>
+              <span className="sr-only">
+                Faltam {Math.floor(restantes / 60)} min e {restantes % 60} s
+              </span>
             </p>
           )}
         </div>

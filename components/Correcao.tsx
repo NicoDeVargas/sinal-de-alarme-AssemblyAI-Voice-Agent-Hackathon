@@ -1,6 +1,6 @@
 "use client";
 import { ENCAMINHAMENTOS, type CasoPublico, type Correcao as TCorrecao, type Encaminhamento } from "@/lib/casos/tipos";
-import { Citacao, Selo } from "./ui";
+import { Citacao, Selo, nomeDe } from "./ui";
 
 const pts = (x: number) => x.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
 
@@ -64,7 +64,7 @@ function Opcao({ rotulo, e, destaque }: { rotulo: string; e: Encaminhamento; des
 }
 
 export function Correcao({ c, caso, atendimento }: { c: TCorrecao; caso: CasoPublico; atendimento: 1 | 2 }) {
-  const nome = caso.quem.split(",")[0];
+  const nome = nomeDe(caso);
   const achou = c.achados.filter((a) => a.feito).length;
   const anamnese = c.anamnese.filter((a) => a.feito).length;
   const positivos = c.comunicacao.filter((x) => x.tipo === "positivo");
@@ -104,7 +104,7 @@ export function Correcao({ c, caso, atendimento }: { c: TCorrecao; caso: CasoPub
                 <Citacao rotulo="Você perguntou">{a.evidencia}</Citacao>
               ) : (
                 <div className="mt-3 rounded-xl bg-alarme-suave px-4 py-3">
-                  <p className="text-sm font-semibold text-alarme-texto">O que teria revelado</p>
+                  <p className="text-sm font-semibold text-alarme-texto">Pergunta que teria revelado</p>
                   <p className="mt-1 text-[1.05rem] italic leading-relaxed">“{a.evidencia}”</p>
                 </div>
               )}

@@ -41,6 +41,7 @@ export async function iniciarConversa({ sessaoId, configUrl, comFicha, atendimen
     avisarFala(l);
   };
   let fimDaVoz = 0;
+  const interrompidas = new Map<string, string>();
   const voz = (v: Voz, espera = 0) => {
     clearTimeout(fimDaVoz);
     if (espera > 0) fimDaVoz = window.setTimeout(() => aoVoz?.(v), espera);
@@ -137,7 +138,10 @@ export async function iniciarConversa({ sessaoId, configUrl, comFicha, atendimen
       diagnostico.respostasInterrompidas++;
       notificar();
       audio.silenciar();
+      const falado = legenda && legenda.id === msg.reply_id ? legenda.texto : (falas.get(`paciente:${msg.reply_id}`)?.texto ?? "");
+      interrompidas.set(msg.reply_id, falado);
       pararLegenda();
+      if (falado) aoFalar({ id: `paciente:${msg.reply_id}`, quem: "paciente", texto: falado, parcial: false });
       voz("ouvindo");
     } else if (msg.type === "reply.done") {
       diagnostico.respostasCompletas++;
@@ -160,7 +164,8 @@ export async function iniciarConversa({ sessaoId, configUrl, comFicha, atendimen
       );
     } else if (msg.type === "transcript.agent") {
       if (legenda?.id === msg.reply_id) pararLegenda();
-      aoFalar({ id: `paciente:${msg.reply_id}`, quem: "paciente", texto: msg.text, parcial: false });
+      const texto = msg.interrupted ? msg.text : (interrompidas.get(msg.reply_id) ?? msg.text);
+      aoFalar({ id: `paciente:${msg.reply_id}`, quem: "paciente", texto, parcial: false });
     } else if (comFicha && msg.type === "tool.call" && msg.name === "consultar_ficha") {
       fila.chamada(msg.call_id);
       try {
