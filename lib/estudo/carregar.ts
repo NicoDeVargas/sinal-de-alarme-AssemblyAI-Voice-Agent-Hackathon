@@ -35,6 +35,28 @@ export async function carregarAvaliacao(sessaoId: string, atendimento: 1 | 2): P
   return linha?.resultado ?? null;
 }
 
+export async function carregarEventosEm(sessaoIds: string[]): Promise<Map<string, Evento[]>> {
+  const mapa = new Map<string, Evento[]>();
+  if (sessaoIds.length === 0) return mapa;
+  const linhas = await sql<{ sessao_id: string; atendimento: 1 | 2; assunto: Assunto; sinal: string | null; ultima_fala: string; criado_em: Date }[]>`
+    select sessao_id, atendimento, assunto, sinal, ultima_fala, criado_em from eventos where sessao_id in ${sql(sessaoIds)}`;
+  for (const l of linhas) {
+    const chave = `${l.sessao_id}:${l.atendimento}`;
+    const evento: Evento = { assunto: l.assunto, achado: l.sinal, ultimaFala: l.ultima_fala, criadoEm: l.criado_em.toISOString() };
+    mapa.set(chave, [...(mapa.get(chave) ?? []), evento]);
+  }
+  return mapa;
+}
+
+export async function carregarAvaliacoesEm(sessaoIds: string[]): Promise<Map<string, Avaliacao>> {
+  const mapa = new Map<string, Avaliacao>();
+  if (sessaoIds.length === 0) return mapa;
+  const linhas = await sql<{ sessao_id: string; atendimento: 1 | 2; resultado: Avaliacao | null }[]>`
+    select sessao_id, atendimento, resultado from avaliacoes where sessao_id in ${sql(sessaoIds)}`;
+  for (const l of linhas) if (l.resultado) mapa.set(`${l.sessao_id}:${l.atendimento}`, l.resultado);
+  return mapa;
+}
+
 async function correcaoDe(s: LinhaSessao, n: 1 | 2): Promise<Correcao | null> {
   const escolhido = n === 1 ? s.encaminhamento_1 : s.encaminhamento_2;
   if (!escolhido) return null;

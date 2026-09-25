@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { Check, Heartbeat, Waveform, X } from "@phosphor-icons/react";
+import { ArrowRight, ArrowUpRight, Check, Heartbeat, Waveform, X } from "@phosphor-icons/react";
 import type { EstadoConversa, Voz } from "@/lib/voz/conversa";
 import type { CasoPublico } from "@/lib/casos/tipos";
 
@@ -77,6 +77,14 @@ export function EstadoDaVoz({ estado, voz, nome }: { estado: EstadoConversa | "p
       {texto}
     </p>
   );
+}
+
+export function SetaPara() {
+  return <ArrowRight size={16} className="self-center text-suave" aria-label="para" />;
+}
+
+export function SetaExterna() {
+  return <ArrowUpRight size={16} weight="bold" aria-hidden />;
 }
 
 export function Aviso({ children }: { children: React.ReactNode }) {
