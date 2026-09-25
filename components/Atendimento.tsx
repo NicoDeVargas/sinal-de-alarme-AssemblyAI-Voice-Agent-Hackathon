@@ -1,7 +1,18 @@
 "use client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { iniciarConversa, type EstadoConversa, type Linha } from "@/lib/voz/conversa";
+import { assinar, diagnostico } from "@/lib/voz/diagnostico";
 import { ENCAMINHAMENTOS, type CasoPublico, type Correcao, type Encaminhamento } from "@/lib/casos/tipos";
+
+function PainelDiagnostico() {
+  const [, forcar] = useState(0);
+  useEffect(() => assinar(() => forcar((n) => n + 1)), []);
+  return (
+    <pre className="fixed bottom-2 left-2 z-50 max-w-xs whitespace-pre-wrap rounded bg-white/80 p-2 font-mono text-xs">
+      {JSON.stringify(diagnostico, null, 2)}
+    </pre>
+  );
+}
 
 export function Atendimento({ sessaoId, atendimento, caso, aoDecidir }: { sessaoId: string; atendimento: 1 | 2; caso: CasoPublico; aoDecidir(c: Correcao): void }) {
   const [linhas, setLinhas] = useState<Linha[]>([]);
@@ -9,7 +20,12 @@ export function Atendimento({ sessaoId, atendimento, caso, aoDecidir }: { sessao
   const [detalhe, setDetalhe] = useState("");
   const [decidindo, setDecidindo] = useState(false);
   const [erroDecisao, setErroDecisao] = useState("");
+  const [debug, setDebug] = useState(false);
   const conversa = useRef<{ encerrar(): void } | null>(null);
+
+  useEffect(() => {
+    setDebug(new URLSearchParams(location.search).get("debug") === "1");
+  }, []);
 
   async function comecar() {
     setDetalhe("");
@@ -89,6 +105,7 @@ export function Atendimento({ sessaoId, atendimento, caso, aoDecidir }: { sessao
           {erroDecisao && <p className="text-red-700">{erroDecisao}</p>}
         </div>
       )}
+      {debug && <PainelDiagnostico />}
     </section>
   );
 }

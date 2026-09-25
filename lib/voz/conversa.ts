@@ -1,5 +1,6 @@
 import { abrirAudio } from "./audio";
 import { criarFila } from "./fila";
+import { diagnostico, notificar, registrarErro, registrarEvento } from "./diagnostico";
 
 export type EstadoConversa = "conectando" | "pronto" | "encerrado" | "erro";
 export interface Linha {
@@ -46,8 +47,13 @@ export async function iniciarConversa({ sessaoId, atendimento, aoFalar, aoEstado
   let ws: WebSocket | null = null;
   let audio: Awaited<ReturnType<typeof abrirAudio>>;
   try {
-    audio = await abrirAudio(ctx, (b64) => {
-      if (pronto && ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "input.audio", audio: b64 }));
+    audio = await abrirAudio(ctx, (b64, bytes) => {
+      if (pronto && ws?.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: "input.audio", audio: b64 }));
+        diagnostico.chunksEnviados++;
+        diagnostico.bytesEnviados += bytes;
+        notificar();
+      }
     });
   } catch {
     ctx.close();
@@ -93,18 +99,29 @@ export async function iniciarConversa({ sessaoId, atendimento, aoFalar, aoEstado
   socket.onmessage = async (ev) => {
     const msg = JSON.parse(ev.data);
     fila.evento(msg.type, msg.status);
+    registrarEvento(msg.type);
     if (msg.type === "session.ready") {
       pronto = true;
       aoEstado("pronto");
+    } else if (msg.type === "input.speech.started") {
+      diagnostico.falaDetectada++;
+      notificar();
     } else if (msg.type === "reply.started") {
+      diagnostico.respostasIniciadas++;
+      notificar();
       pararLegenda();
       legenda = { id: msg.reply_id, inicio: null, texto: "", timers: [] };
     } else if (msg.type === "reply.audio") {
       if (legenda) legenda.inicio ??= audio.proximoInicio();
       audio.tocar(msg.data);
     } else if (msg.type === "reply.done" && msg.status === "interrupted") {
+      diagnostico.respostasInterrompidas++;
+      notificar();
       audio.silenciar();
       pararLegenda();
+    } else if (msg.type === "reply.done") {
+      diagnostico.respostasCompletas++;
+      notificar();
     } else if (msg.type === "transcript.user.delta") aoFalar({ id: `voce:${msg.item_id}`, quem: "voce", texto: msg.text, parcial: true });
     else if (msg.type === "transcript.user") {
       ultimaFala = msg.text;
@@ -135,8 +152,10 @@ export async function iniciarConversa({ sessaoId, atendimento, aoFalar, aoEstado
       } catch {
         fila.resultado(msg.call_id, JSON.stringify({ erro: "Não foi possível lembrar agora. Peça para o profissional repetir a pergunta." }));
       }
-    } else if (msg.type === "session.error" || msg.type === "error") fechar("erro", msg.message ?? "Erro na conversa com o paciente.", true);
-    else if (msg.type === "session.ended") fechar("encerrado");
+    } else if (msg.type === "session.error" || msg.type === "error") {
+      registrarErro(msg.message ?? msg.type);
+      fechar("erro", msg.message ?? "Erro na conversa com o paciente.", true);
+    } else if (msg.type === "session.ended") fechar("encerrado");
   };
 
   const aoSair = () => socket.readyState === WebSocket.OPEN && socket.send(JSON.stringify({ type: "session.end" }));

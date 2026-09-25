@@ -18,6 +18,7 @@ class PCMPlayer extends AudioWorkletProcessor {
     this.anterior = 0;
     this.tocando = false;
     this.espera = 0;
+    this.avisouFalta = false;
   }
   guardar(v) {
     if (this.disponivel === this.anel.length) return;
@@ -43,7 +44,10 @@ class PCMPlayer extends AudioWorkletProcessor {
     const saida = outputs[0][0];
     if (!this.tocando && this.disponivel > 0) {
       this.espera += saida.length;
-      if (this.disponivel >= this.atraso || this.espera >= this.atraso) this.tocando = true;
+      if (this.disponivel >= this.atraso || this.espera >= this.atraso) {
+        this.tocando = true;
+        this.avisouFalta = false;
+      }
     }
     for (let i = 0; i < saida.length; i++) {
       if (this.tocando && this.disponivel > 0) {
@@ -55,6 +59,10 @@ class PCMPlayer extends AudioWorkletProcessor {
         if (this.tocando) {
           this.tocando = false;
           this.espera = 0;
+          if (!this.avisouFalta) {
+            this.avisouFalta = true;
+            this.port.postMessage({ tipo: "falta" });
+          }
         }
       }
     }
